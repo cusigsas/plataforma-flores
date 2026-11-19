@@ -185,6 +185,26 @@ textarea.inp{padding:12px 14px;min-height:120px;line-height:1.45;resize:vertical
 .t-dots i.on{background:#F2C14E}
 .celebra{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99;background:#13201B;color:#fff;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;width:min(480px,calc(100% - 24px));box-shadow:0 18px 44px rgba(0,0,0,.35)}
 .btn-gold{background:#F2C14E;color:#13201B}
+
+/* periodo, métricas y buscador */
+.perbar{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line2);border-radius:18px;padding:6px}
+.perbar .x{border:none;background:var(--soft);width:48px;height:48px}
+.perbar .x:disabled{opacity:.3;cursor:default}
+.perlbl{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:none;border:none;min-height:48px;text-align:center;padding:0 4px;border-radius:12px}
+.perlbl:hover{background:var(--soft)}
+.perlbl b{font-size:16.5px;line-height:1.25}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:700px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.kpi b{font-size:21px;font-weight:800;line-height:1.2}
+.cmp{display:inline-flex;align-items:center;gap:3px;font-size:12.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:#EEF2EF;color:var(--muted);white-space:nowrap}
+.cmp.up{background:var(--ok-bg);color:var(--ok)}
+.cmp.down{background:var(--bad-bg);color:var(--bad)}
+.days .dbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0;background:none;border:none;padding:0;border-radius:4px}
+.days .dbar:hover i{filter:brightness(.9)}
+.topbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line2);background:var(--soft);font-weight:800;font-size:14.5px;color:var(--ink2)}
+.bigsearch{display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:0 16px;border-radius:16px;border:1.5px solid var(--line2);background:#fff;font-size:16px;font-weight:600;color:var(--muted);text-align:left}
+.sugs .sug{width:100%}
 </style>
 </head>
 <body>
@@ -260,7 +280,13 @@ const ICONS = {
   up: '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   refresh: '<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
-  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  chevL: '<path d="m15 18-6-6 6-6"/>',
+  chevR: '<path d="m9 18 6-6-6-6"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
 };
 const ic = (n, s = 20, w = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
@@ -282,6 +308,11 @@ const INFO = {
   receta: ['La receta', 'La lista de lo que lleva este producto. Cuando registras una compra con un precio nuevo, el costo de la receta se actualiza solo.'],
   manoObra: ['Mano de obra', 'Lo que le pagas a quien arma este producto, cuando esa persona cobra por arreglo.'],
   anticipacion: ['Días de aviso', 'Cuántos días antes de una fecha especial quieres que aparezca el cliente en «Hoy toca escribirles».'],
+  historial: ['Historial de cambios', 'Cada vez que guardas algo queda anotado aquí. Si te equivocaste, toca «Deshacer» y todo vuelve a como estaba antes de ese cambio.'],
+  promedio: ['Venta promedio', 'Lo que te paga en promedio cada cliente. Si sube, estás vendiendo arreglos más grandes o más extras.'],
+  porGoogle: ['Llegaron por Google', 'Cuántas de tus ventas fueron de clientes que te encontraron en Google. Esas son las que pagan comisión.'],
+  porCobrar: ['Por cobrar', 'Lo que te deben los clientes que dejaron un abono y todavía no pagan el resto.'],
+  domicilio: ['Domicilio', 'Lo que le cobras al cliente por llevar el pedido. Suma a la venta y no paga comisión. La gasolina la anotas en Gastos.'],
   extra: ['Extras', 'Chocolates, peluches, globos y vinos que se venden con el arreglo. Según lo acordado con tu negocio, no pagan comisión.']
 };
 const info = k => `<button type="button" class="info" data-act="info" data-id="${k}" aria-label="Qué significa: ${esc(INFO[k] ? INFO[k][0] : '')}">i</button>`;
@@ -518,8 +549,19 @@ function emptyState() {
     guia: { estado: {}, oculta: false, final: false }
   };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
-const UI = { period: 'mes', vper: 'hoy', ptab: 'arreglo', pq: '', pcat: 'todos', vps: '', vcat: 'todos', cq: '', compra: { iid: '', cant: '', total: '' }, compraRes: null, resetAsk: false };
+function save() {
+  let now; try { now = JSON.stringify(S); } catch (e) { return; }
+  if (lastJSON !== null && lastJSON !== now) {
+    const t = Date.now(), h0 = HIST[0];
+    if (h0 && !h0.desc && t - h0.t < 2000) { if (pendingDesc) h0.desc = pendingDesc; h0.t = t; }
+    else { if (h0 && !h0.desc) HIST.shift(); HIST.unshift({ id: uid(), t, fecha: isoDT(new Date()), desc: pendingDesc, data: lastJSON }); }
+    pendingDesc = null;
+    if (HIST[0].desc) guardarHist();
+  }
+  lastJSON = now;
+  try { localStorage.setItem(KEY, now); } catch (e) { }
+}
+const UI = { period: 'mes', vper: 'hoy', ptab: 'arreglo', pq: '', pcat: 'todos', vps: '', vcat: 'todos', cq: '', compra: { iid: '', cant: '', total: '' }, compraRes: null, resetAsk: false, per: { k: 'hoy' }, vf: 'todas', vsq: '', fq: '', undoAsk: null };
 
 /* =========================================================
    Cálculos del negocio
@@ -550,8 +592,9 @@ function calcVenta(d) {
   const e = emp(d.empleadoId);
   const mo = !e ? 0 : e.tipo === 'producto' ? its.filter(x => !x.anexo).reduce((s, x) => s + x.mo * x.cant, 0) : e.tipo === 'mixto' ? num(e.valorProducto) * units : 0;
   const parte = Math.min(num(d.parte), base);
-  const com = S.config.precioModo === 'neto' ? 0 : d.origen === 'google' ? base * comPct() : d.origen === 'parte' ? parte * comPct() : 0;
-  return { its, total, insumos: insum, base, units, mo, com, parte, quedo: total - insum - mo - com };
+  const com = !on('comision') || S.config.precioModo === 'neto' ? 0 : d.origen === 'google' ? base * comPct() : d.origen === 'parte' ? parte * comPct() : 0;
+  const dom = on('domicilios') ? num(d.dom) : 0;
+  return { its, total: total + dom, dom, insumos: insum, base, units, mo, com, parte, quedo: total + dom - insum - mo - com };
 }
 
 function deuda(e) {
@@ -682,13 +725,14 @@ const NAV = [
   { id: 'como-voy', label: '¿Cómo voy?', icon: 'chart', roles: ['duena'], main: 1 },
   { id: 'ventas', label: 'Ventas', icon: 'list', roles: ['duena', 'secretaria', 'florista'] },
   { id: 'productos', label: 'Productos', icon: 'flower', roles: ['duena', 'secretaria'] },
-  { id: 'compras', label: 'Compras', icon: 'cart', roles: ['duena', 'secretaria'] },
-  { id: 'gastos', label: 'Gastos', icon: 'wallet', roles: ['duena', 'secretaria'] },
+  { id: 'compras', label: 'Compras', icon: 'cart', roles: ['duena', 'secretaria'], mod: 'compras' },
+  { id: 'gastos', label: 'Gastos', icon: 'wallet', roles: ['duena', 'secretaria'], mod: 'gastos' },
   { id: 'equipo', label: 'Equipo', icon: 'team', roles: ['duena'], mod: 'equipo' },
+  { id: 'funciones', label: 'Funcionalidades', icon: 'grid', roles: ['duena'] },
   { id: 'mi-negocio', label: 'Mi negocio', icon: 'sliders', roles: ['duena'] },
   { id: 'guia', label: 'Guía', icon: 'help', roles: ['duena', 'secretaria', 'florista'] }
 ];
-const navFor = () => NAV.filter(n => n.roles.includes(ROL()) && (!n.mod || S.config.mods[n.mod]));
+const navFor = () => NAV.filter(n => n.roles.includes(ROL()) && (!n.mod || on(n.mod)));
 const route = () => { const h = (location.hash || '').replace('#', ''); const ok = navFor().find(n => n.id === h); return ok ? h : 'inicio'; };
 const go = id => { if (location.hash === '#' + id) render(); else location.hash = id; };
 
@@ -705,6 +749,7 @@ function renderShell() {
   bn.innerHTML = cells.join('');
   document.getElementById('top').innerHTML = `
     <div class="brand"><b>${esc(S.config.negocio || 'Mi negocio')}</b><span>Mi Negocio en Orden · ${fLarga(TODAY())}</span></div>
+    <button type="button" class="topbtn" data-act="buscar" aria-label="Buscar lo que necesitas">${ic('search', 19, 2.4)}Buscar</button>
     <span class="demo-tag">En pruebas</span>
     ${roleOpts().length > 1 ? `<label class="role" for="rolSel">Ver como
       <select id="rolSel" data-in="rol">${roleOpts().map(([k, v]) => `<option value="${k}" ${(S.rol || 'duena') === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
@@ -717,39 +762,59 @@ function renderShell() {
 const VIEWS = {};
 
 VIEWS.inicio = () => {
-  const T = TODAY();
-  const vs = ventasEn(T, T);
-  const tot = vs.reduce((s, v) => s + v.total, 0), q = vs.reduce((s, v) => s + v.quedo, 0);
+  const [a, b] = perRango(); const [pa, pb, prevTxt] = perAnterior();
+  const hoyEs = UI.per.k === 'hoy';
   if (ROL() === 'florista') {
     const e = ME(); const d = deuda(e);
-    const mine = vs.filter(v => v.empleadoId === e.id);
+    const mine = ventasEn(a, b).filter(v => v.empleadoId === e.id);
     return `<h2 class="v-title">Hola, ${esc(e.nombre)}</h2>
     <div class="card hero"><div class="row"><span class="lab">Llevas ganado desde tu último pago</span>${info('deuda')}</div>
     <div class="big num">${money(d.total)}</div><div class="lab" style="margin-top:6px">${d.units} arreglos${d.vales ? ` · vales ${money(-d.vales)}` : ''}</div></div>
     <a class="btn btn-p block" href="#vender" style="min-height:64px;font-size:18px">${ic('add', 24, 2.4)}Registrar venta</a>
-    <div class="sect">Tus ventas de hoy</div>
-    <div class="card">${mine.length ? mine.slice().reverse().map(v => ventaRow(v, false)).join('') : '<div class="empty">Todavía no registras ventas hoy.</div>'}</div>
+    ${periodoBar()}
+    <div class="card">${mine.length ? mine.slice().reverse().map(v => ventaRow(v, false)).join('') : `<div class="empty">No registraste ventas ${hoyEs ? 'hoy' : 'en estos días'}.</div>`}</div>
     <p class="small muted">Con tu usuario puedes registrar ventas y ver lo que llevas ganado. Las ganancias del negocio solo las ve la dueña.</p>`;
   }
   const own = ROL() === 'duena';
+  const vs = ventasEn(a, b), pv = ventasEn(pa, pb);
+  const sum = (L, k) => L.reduce((s, v) => s + (v[k] || 0), 0);
+  const tot = sum(vs, 'total'), q = sum(vs, 'quedo'), ptot = sum(pv, 'total'), pq = sum(pv, 'quedo');
+  const prom = vs.length ? tot / vs.length : 0, pprom = pv.length ? ptot / pv.length : 0;
+  const goo = vs.filter(v => v.origen === 'google' || v.origen === 'parte').length;
+  const A = iso(a), B = iso(b);
+  const nuevos = S.clientes.filter(c => c.desde >= A && c.desde <= B).length, pnuevos = S.clientes.filter(c => c.desde >= iso(pa) && c.desde <= iso(pb)).length;
+  const debe = saldos(); const debeTot = debe.reduce((s, v) => s + v.saldo, 0);
   const avisos = own ? avisosHoy() : [];
-  return `<h2 class="v-title">Hola${ROL() === 'duena' ? (S.config.duena ? ', ' + esc(S.config.duena) : '') : ', ' + esc(ME().nombre)}</h2>
+  const vsTxt = (x, y) => { const c = cambio(x, y); return c ? c + ' vs ' + prevTxt : ''; };
+  const kpis = [
+    kpi('Venta promedio', money(prom), vsTxt(prom, pprom), 'promedio'),
+    on('comision') ? kpi('Llegaron por Google', `${goo} de ${vs.length}`, vs.length ? `${pct(goo, vs.length)}% de tus ventas` : 'Sin ventas', 'porGoogle') : '',
+    on('clientes') ? kpi('Clientes nuevos', String(nuevos), vsTxt(nuevos, pnuevos) || 'En estos días') : '',
+    on('abonos') ? kpi('Por cobrar', money(debeTot), debe.length ? `${debe.length} venta${debe.length > 1 ? 's' : ''} con saldo` : 'Nadie te debe', 'porCobrar') : ''
+  ].filter(Boolean);
+  return `<h2 class="v-title">Hola${own ? (S.config.duena ? ', ' + esc(S.config.duena) : '') : ', ' + esc(ME().nombre)}</h2>
+  <button type="button" class="bigsearch" data-act="buscar">${ic('search', 20, 2.4)}¿Qué necesitas hacer? Escríbelo aquí</button>
+  ${paraEmpezarHTML()}
+  ${periodoBar()}
   <div class="card hero">
-    <div class="row"><span class="lab">Hoy vendiste</span><span class="badge" style="background:#D6EADF;color:#13201B">${vs.length} ventas</span></div>
+    <div class="row" style="flex-wrap:wrap"><span class="lab">${hoyEs ? 'Hoy vendiste' : 'Vendiste'}</span><span class="row start" style="gap:6px"><span class="badge" style="background:#D6EADF;color:#13201B">${vs.length} venta${vs.length === 1 ? '' : 's'}</span>${cambio(tot, ptot)}</span></div>
     <div class="big num">${money(tot)}</div>
+    ${ptot ? `<div class="lab" style="margin-top:2px">${prevTxt[0].toUpperCase() + prevTxt.slice(1)}: ${money(ptot)}</div>` : ''}
     ${own ? `<div style="height:1px;background:#3C7A63;margin:12px 0"></div>
-    <div class="row"><span class="row start" style="gap:8px;font-weight:700">Te quedaron ${info('quedaron')}</span><span class="num" style="font-size:26px;font-weight:800">${money(q)}</span></div>` : ''}
+    <div class="row" style="flex-wrap:wrap"><span class="row start" style="gap:8px;font-weight:700">Te quedaron ${info('quedaron')}</span><span class="row start" style="gap:8px">${cambio(q, pq)}<span class="num" style="font-size:26px;font-weight:800">${money(q)}</span></span></div>` : ''}
   </div>
+  ${kpis.length ? `<div class="kpis">${kpis.join('')}</div>` : ''}
   <div class="grid2" style="gap:10px">
     <a class="btn btn-p" href="#vender" style="min-height:64px;font-size:18px">${ic('add', 24, 2.4)}Registrar venta</a>
-    <div class="row" style="gap:10px">
-      <a class="btn btn-l" href="#gastos" style="flex:1;min-height:64px">${ic('wallet')}Gasto o compra</a>
-      ${own ? `<a class="btn btn-l" href="#como-voy" style="flex:1;min-height:64px">${ic('chart')}¿Cómo voy?</a>` : `<a class="btn btn-l" href="#clientes" style="flex:1;min-height:64px">${ic('users')}Clientes</a>`}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px">
+      ${on('gastos') ? `<a class="btn btn-l" href="#gastos" style="flex:1;min-height:64px">${ic('wallet')}Gasto${on('compras') ? ' o compra' : ''}</a>` : ''}
+      ${own ? `<a class="btn btn-l" href="#como-voy" style="flex:1;min-height:64px">${ic('chart')}¿Cómo voy?</a>` : on('clientes') ? `<a class="btn btn-l" href="#clientes" style="flex:1;min-height:64px">${ic('users')}Clientes</a>` : ''}
     </div>
   </div>
+  ${dBetween(a, b) > 0 ? `<div class="card">${graficoDias(a, b, own)}</div>` : ''}
   ${own ? `<div class="sect">Para atender hoy</div>${avisos.length ? avisos.join('') : '<div class="card empty">Todo al día. No hay nada pendiente.</div>'}` : ''}
-  <div class="sect">Últimas ventas de hoy</div>
-  <div class="card">${vs.length ? vs.slice(-5).reverse().map(v => ventaRow(v, own)).join('') + `<a href="#ventas" class="btn btn-l sm block" style="margin-top:10px">Ver todas las ventas</a>` : '<div class="empty">Todavía no hay ventas hoy.</div>'}</div>
+  <div class="sect">${hoyEs ? 'Últimas ventas de hoy' : 'Últimas ventas de estos días'}</div>
+  <div class="card">${vs.length ? vs.slice(-5).reverse().map(v => ventaRow(v, own)).join('') + `<a href="#ventas" class="btn btn-l sm block" style="margin-top:10px">Ver ${vs.length > 5 ? 'las ' + vs.length + ' ventas' : 'todas las ventas'}</a>` : `<div class="empty">No hay ventas ${hoyEs ? 'hoy todavía' : 'en estos días'}.</div>`}</div>
   ${!own ? `<p class="small muted">Con el usuario de secretaria puedes registrar ventas, gastos y clientes. Las ganancias del negocio solo las ve la dueña.</p>` : ''}`;
 };
 function avisosHoy() {
@@ -759,10 +824,11 @@ function avisosHoy() {
   const subio = S.insumos.filter(i => i.cambio && dBetween(parseD(i.cambio), T) <= 3 && i.precio > i.prev);
   if (subio.length) out.push(al('bad', 'alert', `Subió ${subio[0].nombre.toLowerCase()} a ${money(subio[0].precio)}`, rojos.length ? `${rojos.length} producto${rojos.length > 1 ? 's' : ''} casi no te deja${rojos.length > 1 ? 'n' : ''} ganancia` : 'Revisa tus productos', '#productos'));
   else if (rojos.length) out.push(al('bad', 'alert', `${rojos.length} producto${rojos.length > 1 ? 's' : ''} casi no te deja${rojos.length > 1 ? 'n' : ''} ganancia`, 'Revisa su precio', '#productos'));
-  if (S.config.mods.clientes) { const pe = porEscribir().filter(x => !x.hecho); if (pe.length) out.push(al('rs', 'heart', `Escríbele a ${pe.length} cliente${pe.length > 1 ? 's' : ''}`, 'Tienen fecha especial estos días', '#clientes')); }
-  S.gastosFijos.map(g => ({ g, c: ciclo(g, T) })).filter(x => !x.c.pagado && x.c.diff <= 5).sort((a, b) => a.c.diff - b.c.diff).slice(0, 2)
+  if (on('abonos')) { const db = saldos(); if (db.length) out.push(al('warn', 'wallet', `Te deben ${money(db.reduce((s, v) => s + v.saldo, 0))}`, `${db.length} venta${db.length > 1 ? 's' : ''} con abono sin terminar de pagar`, '#ventas', 'Cobrar')); }
+  if (on('clientes')) { const pe = porEscribir().filter(x => !x.hecho); if (pe.length) out.push(al('rs', 'heart', `Escríbele a ${pe.length} cliente${pe.length > 1 ? 's' : ''}`, 'Tienen fecha especial estos días', '#clientes')); }
+  if (on('gastos')) S.gastosFijos.map(g => ({ g, c: ciclo(g, T) })).filter(x => !x.c.pagado && x.c.diff <= 5).sort((a, b) => a.c.diff - b.c.diff).slice(0, 2)
     .forEach(({ g, c }) => out.push(al('warn', 'cal', `${esc(g.nombre)} · ${money(g.valor)}`, c.diff < 0 ? `Se venció hace ${-c.diff} día${c.diff < -1 ? 's' : ''}` : c.diff === 0 ? 'Vence hoy' : `Vence en ${c.diff} día${c.diff > 1 ? 's' : ''}`, '#gastos')));
-  if (S.config.mods.equipo) S.empleados.map(e => ({ e, d: deuda(e) })).filter(x => x.d.total > 0 && x.e.tipo !== 'fijo').sort((a, b) => b.d.total - a.d.total).slice(0, 2)
+  if (on('equipo')) S.empleados.map(e => ({ e, d: deuda(e) })).filter(x => x.d.total > 0 && x.e.tipo !== 'fijo').sort((a, b) => b.d.total - a.d.total).slice(0, 2)
     .forEach(({ e, d }) => out.push(al('t-dark', 'team', `Le debes a ${esc(e.nombre)} ${money(d.total)}`, e.tipo === 'dia' ? `${d.dias} día${d.dias > 1 ? 's' : ''} sin pagar` : `${d.units} arreglos desde su último pago`, '#equipo')));
   const sr = S.productos.filter(p => sinReceta(p)).length;
   if (sr) out.push(al('warn', 'flower', `${sr} arreglo${sr > 1 ? 's' : ''} sin receta`, 'Ponle receta a los que más vendes para saber cuánto te deja cada uno', '#productos'));
@@ -772,39 +838,337 @@ function avisosHoy() {
 }
 function ventaRow(v, showQ) {
   const c = cliente(v.clienteId);
-  const its = v.items.map(x => `${x.cant > 1 ? x.cant + ' × ' : ''}${x.nombre}`).join(' + ');
-  const ob = v.origen === 'google' ? '<span class="badge ok">Google</span>' : v.origen === 'parte' ? '<span class="badge warn">Parte Google</span>' : '<span class="badge neu">Otro lado</span>';
+  const its = v.items.map(x => `${x.cant > 1 ? x.cant + ' × ' : ''}${x.nombre}`).join(' + ') + (v.domicilio ? ' + domicilio' : '');
+  const ob = !on('comision') ? '' : v.origen === 'google' ? '<span class="badge ok">Google</span>' : v.origen === 'parte' ? '<span class="badge warn">Parte Google</span>' : '<span class="badge neu">Otro lado</span>';
+  const cuando = v.fecha.slice(0, 10) === iso(TODAY()) ? hora(v.fecha) : `${fCorta(parseD(v.fecha))} · ${hora(v.fecha)}`;
+  const puede = ROL() !== 'florista';
   return `<div class="list-item">
-    <div class="col" style="flex:1"><b style="font-size:15px">${esc(its)}</b><span class="small muted">${hora(v.fecha)} · ${c ? esc(c.nombre) : 'Sin datos del cliente'} · ${esc(empName(v.empleadoId))}</span><span class="row start" style="gap:6px;flex-wrap:wrap">${ob}${v.recuperada ? '<span class="badge rs">Recuperada</span>' : ''}</span></div>
+    <div class="col" style="flex:1"><b style="font-size:15px">${esc(its)}</b><span class="small muted">${cuando} · ${c ? esc(c.nombre) : 'Sin datos del cliente'}${on('equipo') ? ' · ' + esc(empName(v.empleadoId)) : ''}</span><span class="row start" style="gap:6px;flex-wrap:wrap">${ob}${v.recuperada ? '<span class="badge rs">Recuperada</span>' : ''}${v.saldo > 0 ? `<span class="badge bad">Debe ${money(v.saldo)}</span>${puede ? `<button type="button" class="btn btn-p xs" data-act="saldoOk" data-id="${v.id}">Ya pagó</button>` : ''}` : ''}</span></div>
     <div class="col" style="align-items:flex-end;flex:none"><b class="num">${money(v.total)}</b>${showQ ? `<span class="small num" style="color:var(--green-d);font-weight:700">te quedó ${money(v.quedo)}</span>` : ''}
-    ${ROL() !== 'florista' ? `<button type="button" class="btn btn-l xs" data-act="delVenta" data-id="${v.id}" aria-label="Borrar venta">${ic('trash', 16)}</button>` : ''}</div>
+    ${puede ? `<span class="row" style="gap:6px"><button type="button" class="btn btn-l xs" data-act="editVenta" data-id="${v.id}" aria-label="Corregir venta">${ic('edit', 16)}</button><button type="button" class="btn btn-l xs" data-act="delVenta" data-id="${v.id}" aria-label="Borrar venta">${ic('trash', 16)}</button></span>` : ''}</div>
   </div>`;
 }
+function draftDeVenta(v) {
+  const d = newDraft();
+  d.editId = v.id; d.fecha = v.fecha.slice(0, 10); d.items = {};
+  v.items.forEach(x => { if (prod(x.pid)) d.items[x.pid] = { cant: x.cant, precio: x.precio }; });
+  d.clienteId = cliente(v.clienteId) ? v.clienteId : null; d.perSel = v.personaId || 'ninguna'; d.empleadoId = v.empleadoId;
+  d.origen = v.origen; d.parte = v.parte || ''; d.pago = v.pago; d.dom = v.domicilio || 0;
+  d.pagoTipo = v.saldo > 0 ? 'abono' : 'todo'; d.abono = v.saldo > 0 ? v.abono : 0;
+  return d;
+}
+/* =========================================================
+   Funciones prendidas o apagadas (cada negocio tiene las suyas)
+   ========================================================= */
+const on = k => !S.config.mods || S.config.mods[k] !== false;
+const FUNCS = [
+  { g: 'Lo básico (siempre está)', items: [
+    { t: 'Ventas', d: 'Registrar lo que vendes tocando la foto del arreglo, también ventas de días pasados, y corregirlas si te equivocas.' },
+    { t: 'Productos con foto, precio y receta', d: 'Tus arreglos con lo que llevan y lo que te deja cada uno.' },
+    { t: '¿Cómo voy?', d: 'Lo que de verdad te quedó en el día, la semana o el mes.' },
+    { t: 'Historial y deshacer', d: 'Todo lo que guardas queda anotado y lo puedes deshacer.' }
+  ] },
+  { g: 'Plata', items: [
+    { k: 'comision', t: 'Comisión con Líderes Locales', d: 'En cada venta pregunta si el cliente llegó por Google y resta la comisión.' },
+    { k: 'domicilios', t: 'Cobro de domicilio', d: 'Anota lo que cobras por llevar el pedido. No paga comisión.' },
+    { k: 'abonos', t: 'Abonos y saldos por cobrar', d: 'Si el cliente deja un abono, te recuerda cuánto falta por cobrar.' },
+    { k: 'compras', t: 'Compras de flores e insumos', d: 'Registra lo que compras y actualiza solo el costo de tus arreglos.' },
+    { k: 'gastos', t: 'Gastos fijos y del día', d: 'Arriendo, servicios, gasolina y bolsas, para ver tu ganancia real.' }
+  ] },
+  { g: 'Personas', items: [
+    { k: 'equipo', t: 'Equipo y pagos', d: 'Quién trabaja contigo, cómo le pagas y cuánto le debes.' },
+    { k: 'clientes', t: 'Clientes y fechas especiales', d: 'Guarda a tus clientes y te avisa a quién escribirle por su fecha especial.' }
+  ] },
+  { g: 'Ayuda', items: [
+    { k: 'guia', t: 'Pasos para empezar', d: 'La tarjeta «Para empezar» del inicio con las misiones paso a paso.' }
+  ] }
+];
+const funcNombre = k => { for (const g of FUNCS) for (const it of g.items) if (it.k === k) return it.t; return k; };
+
+/* =========================================================
+   Periodo: se elige una vez y viaja entre Inicio, Ventas, Gastos y ¿Cómo voy?
+   ========================================================= */
+const capi = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+function perRango(p = UI.per) {
+  const T = TODAY(); const dw = (T.getDay() + 6) % 7;
+  switch (p.k) {
+    case 'hoy': return [T, T];
+    case 'ayer': return [addD(T, -1), addD(T, -1)];
+    case 'semana': return [addD(T, -dw), T];
+    case 'semanaPasada': return [addD(T, -dw - 7), addD(T, -dw - 1)];
+    case 'mes': return [new Date(T.getFullYear(), T.getMonth(), 1), T];
+    case 'mesPasado': { const a = new Date(T.getFullYear(), T.getMonth() - 1, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
+    default: { let a = parseD(p.a), b = parseD(p.b || p.a); if (b < a) { const t = a; a = b; b = t; } if (b > T) b = T; if (a > T) a = T; return [a, b]; }
+  }
+}
+const esMesEntero = (a, b) => a.getDate() === 1 && iso(b) === iso(new Date(a.getFullYear(), a.getMonth() + 1, 0));
+function perTexto(p = UI.per) {
+  const [a, b] = perRango(p); const T = TODAY();
+  const dia = d => `${DOW[d.getDay()]} ${d.getDate()} de ${MES[d.getMonth()]}`;
+  if (p.k === 'hoy') return 'Hoy, ' + dia(a);
+  if (p.k === 'ayer') return 'Ayer, ' + dia(a);
+  if (iso(a) === iso(b)) return capi(dia(a));
+  const r = `${a.getDate()}${a.getMonth() !== b.getMonth() ? ' de ' + MESC[a.getMonth()] : ''} al ${b.getDate()} de ${MESC[b.getMonth()]}`;
+  if (p.k === 'semana') return `Esta semana · ${r}`;
+  if (p.k === 'semanaPasada') return `La semana pasada · ${r}`;
+  if (p.k === 'mes') return `${capi(MES[a.getMonth()])} hasta hoy`;
+  if (a.getDay() === 1 && dBetween(a, b) === 6) return `Semana del ${r}`;
+  if (p.k === 'mesPasado' || esMesEntero(a, b)) return `${capi(MES[a.getMonth()])} de ${a.getFullYear()}`;
+  if (a.getDate() === 1 && iso(b) === iso(T)) return `${capi(MES[a.getMonth()])} hasta hoy`;
+  return `Del ${r}`;
+}
+function perAnterior(p = UI.per) {
+  const [a, b] = perRango(p);
+  if (a.getDate() === 1 && iso(b) === iso(TODAY()) && dBetween(a, b) > 0) { const pa = new Date(a.getFullYear(), a.getMonth() - 1, 1); return [pa, new Date(pa.getFullYear(), pa.getMonth(), Math.min(b.getDate(), dim(pa.getFullYear(), pa.getMonth()))), 'los mismos días del mes anterior']; }
+  if (esMesEntero(a, b)) { const pa = new Date(a.getFullYear(), a.getMonth() - 1, 1); return [pa, new Date(pa.getFullYear(), pa.getMonth() + 1, 0), 'el mes anterior']; }
+  const n = dBetween(a, b) + 1;
+  if (a.getDay() === 1 && n < 7 && iso(b) === iso(TODAY())) return [addD(a, -7), addD(b, -7), 'los mismos días de la semana pasada'];
+  return [addD(a, -n), addD(a, -1), n === 1 ? 'el día anterior' : n === 7 ? 'la semana anterior' : `los ${n} días anteriores`];
+}
+function perPoner(a, b) {
+  const T = TODAY();
+  if (b > T) b = T;
+  if (iso(a) === iso(b)) UI.per = iso(a) === iso(T) ? { k: 'hoy' } : iso(a) === iso(addD(T, -1)) ? { k: 'ayer' } : { k: 'dia', a: iso(a) };
+  else {
+    const dw = (T.getDay() + 6) % 7, lun = addD(T, -dw);
+    if (iso(a) === iso(lun) && iso(b) === iso(T)) UI.per = { k: 'semana' };
+    else if (iso(a) === iso(addD(lun, -7)) && iso(b) === iso(addD(lun, -1))) UI.per = { k: 'semanaPasada' };
+    else if (a.getDate() === 1 && a.getMonth() === T.getMonth() && a.getFullYear() === T.getFullYear() && iso(b) === iso(T)) UI.per = { k: 'mes' };
+    else UI.per = { k: 'rango', a: iso(a), b: iso(b) };
+  }
+}
+function perMover(dir) {
+  const [a, b] = perRango(); const T = TODAY(); const n = dBetween(a, b) + 1;
+  let na, nb;
+  if (n > 1 && a.getDate() === 1 && (esMesEntero(a, b) || iso(b) === iso(T))) { na = new Date(a.getFullYear(), a.getMonth() + dir, 1); nb = new Date(na.getFullYear(), na.getMonth() + 1, 0); }
+  else if (a.getDay() === 1 && (n === 7 || iso(b) === iso(T))) { na = addD(a, dir * 7); nb = addD(na, 6); }
+  else { na = addD(a, dir * n); nb = addD(b, dir * n); }
+  if (na > T) return;
+  perPoner(na, nb); render();
+}
+const perAlDia = () => iso(perRango()[1]) === iso(TODAY());
+function periodoBar() {
+  return `<div class="perbar" data-tour="periodo">
+    <button type="button" class="x" data-act="perMove" data-v="-1" aria-label="Ver el periodo anterior">${ic('chevL', 22, 2.4)}</button>
+    <button type="button" class="perlbl" data-act="perOpen"><span class="xs muted">Estás viendo · toca para cambiar</span><b>${esc(perTexto())}</b></button>
+    <button type="button" class="x" data-act="perMove" data-v="1" aria-label="Ver el periodo siguiente" ${perAlDia() ? 'disabled' : ''}>${ic('chevR', 22, 2.4)}</button>
+  </div>`;
+}
+function periodoSheet() {
+  const T = TODAY(); const [a, b] = perRango();
+  const at = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['semanaPasada', 'La semana pasada'], ['mes', 'Este mes'], ['mesPasado', 'El mes pasado']];
+  return `<div class="sheet-h"><h3>¿Qué días quieres ver?</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${at.map(([k, l]) => `<button type="button" class="chip ${UI.per.k === k ? 'on' : ''}" style="justify-content:center" data-act="perSet" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="sect">Un día en especial</div>
+  <div class="row" style="gap:8px"><input class="inp" type="date" id="perDia" max="${iso(T)}" value="${iso(a)}" aria-label="Día"><button type="button" class="btn btn-p sm" data-act="perDia">Ver ese día</button></div>
+  <div class="sect">Entre dos fechas</div>
+  <div class="fgrid"><div class="field"><label for="perA">Desde</label><input class="inp" type="date" id="perA" max="${iso(T)}" value="${iso(a)}"></div><div class="field"><label for="perB">Hasta</label><input class="inp" type="date" id="perB" max="${iso(T)}" value="${iso(b)}"></div></div>
+  <button type="button" class="btn btn-p block" data-act="perRango">Ver esas fechas</button>`;
+}
+const cambio = (act, ant, mejorSube = true) => {
+  if (!ant) return '';
+  const d = Math.round((act - ant) / Math.abs(ant) * 100);
+  if (!isFinite(d)) return '';
+  const bien = mejorSube ? d >= 0 : d <= 0;
+  return `<span class="cmp ${d === 0 ? '' : bien ? 'up' : 'down'}">${d > 0 ? '▲' : d < 0 ? '▼' : '='} ${Math.abs(d)}%</span>`;
+};
+const kpi = (t, val, sub, key) => `<div class="kpi"><span class="lab row start" style="gap:6px">${t}${key ? info(key) : ''}</span><b class="num">${val}</b><span class="xs muted">${sub || ''}</span></div>`;
+function graficoDias(a, b, own) {
+  const n = dBetween(a, b) + 1; if (n < 2) return '';
+  const semanal = n > 45; const ds = [];
+  if (!semanal) for (let k = 0; k < n; k++) { const d = addD(a, k); const vs = ventasEn(d, d); ds.push({ d, lab: fCorta(d), v: vs.reduce((s, x) => s + x.total, 0), q: vs.reduce((s, x) => s + x.quedo, 0) }); }
+  else for (let d = new Date(a); d <= b; d = addD(d, 7)) { const e = addD(d, 6) > b ? b : addD(d, 6); const vs = ventasEn(d, e); ds.push({ d, lab: 'Sem. ' + fCorta(d), v: vs.reduce((s, x) => s + x.total, 0), q: vs.reduce((s, x) => s + x.quedo, 0) }); }
+  const mx = Math.max(...ds.map(x => x.v), 1);
+  return `<div class="row" style="flex-wrap:wrap"><b>${semanal ? 'Ventas por semana' : 'Ventas día por día'}</b><span class="row start xs muted" style="gap:10px"><span class="row start" style="gap:4px"><i style="width:10px;height:10px;border-radius:3px;background:#B9D8C8;display:inline-block"></i>Vendiste</span>${own ? '<span class="row start" style="gap:4px"><i style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></i>Te quedó</span>' : ''}</span></div>
+  <div class="days" style="margin-top:8px">${ds.map(x => `<button type="button" class="dbar" ${semanal ? '' : `data-act="perDiaSet" data-v="${iso(x.d)}"`} aria-label="${x.lab}: ${money(x.v)}" title="${x.lab}: ${money(x.v)}"><i style="height:${((own ? x.v - Math.max(0, x.q) : x.v) / mx * 100).toFixed(1)}%;background:#B9D8C8;border-radius:4px 4px 0 0"></i>${own ? `<i style="height:${(Math.max(0, x.q) / mx * 100).toFixed(1)}%;background:var(--green)"></i>` : ''}</button>`).join('')}</div>
+  <div class="row xs muted"><span>${ds[0].lab}</span><span>${semanal ? '' : 'Toca un día para verlo'}</span><span>${ds[ds.length - 1].lab}</span></div>`;
+}
+function paraEmpezarHTML() {
+  if (!on('guia') || ROL() !== 'duena') return '';
+  const p = misPend(); if (!p.length) return '';
+  const tot = MIS.length, listos = tot - p.length, sig = p[0], pleg = !!S.guia.plegado;
+  return `<div class="card" style="border:2px solid #F2C14E;display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="flex-wrap:wrap"><div class="col" style="gap:5px;flex:1;min-width:180px"><span class="xs strong" style="color:#8E2447;letter-spacing:.06em">PARA EMPEZAR · ${listos} DE ${tot} LISTOS</span><div class="bar" style="background:#F3EBD3"><i style="width:${pct(listos, tot)}%;background:#F2C14E"></i></div></div>
+    <button type="button" class="btn btn-l xs" data-act="pePleg" aria-expanded="${!pleg}">${pleg ? 'Ver más' : 'Ocultar'}</button></div>
+    <div class="row" style="gap:10px;flex-wrap:wrap"><div class="col" style="flex:1;min-width:180px;gap:2px"><span class="small muted">Sigue</span><b>${esc(sig.titulo)}</b>${pleg ? '' : `<span class="small muted">${esc(sig.desc)}</span>`}</div><button type="button" class="btn btn-p sm" data-act="tStart" data-id="${sig.id}">Guíame</button></div>
+    ${pleg ? '' : `<a class="small strong" href="#guia">Ver todas las misiones</a>`}
+  </div>`;
+}
+const saldos = () => S.ventas.filter(v => v.saldo > 0);
+
+/* =========================================================
+   Buscador «¿Qué necesitas?»
+   ========================================================= */
+const ACCIONES = [
+  { t: 'Registrar una venta', p: 'vender venta nueva vendi anotar', go: 'vender' },
+  { t: 'Registrar una venta de un día pasado', p: 'ayer olvide anotar venta pasada fecha', fn: () => { D = newDraft(); D.fecha = iso(addD(TODAY(), -1)); go('vender'); } },
+  { t: 'Corregir o borrar una venta', p: 'editar corregir borrar venta equivocada error', go: 'ventas' },
+  { t: 'Ver cómo me fue ayer', p: 'ayer dia anterior pasado ventas metricas', fn: () => { UI.per = { k: 'ayer' }; go('inicio'); } },
+  { t: '¿Cuánto me ha quedado este mes?', p: 'ganancia utilidad quedo mes cuanto gane plata', fn: () => { UI.per = { k: 'mes' }; go('como-voy'); }, own: 1 },
+  { t: 'Ver cómo me fue el mes pasado', p: 'mes pasado anterior ganancia utilidad', fn: () => { UI.per = { k: 'mesPasado' }; go('como-voy'); }, own: 1 },
+  { t: 'Cambiar el precio de un arreglo', p: 'precio subir bajar arreglo producto', go: 'productos', own: 1 },
+  { t: 'Revisar la receta de un arreglo', p: 'receta lleva flores costo confirmar', fn: () => { UI.pcat = '__est'; go('productos'); }, own: 1 },
+  { t: 'Ver los cambios de precio para la web', p: 'web pagina sincronizar cambios precios', fn: () => openSheet(cambiosSheet), own: 1 },
+  { t: 'Registrar una compra de flores', p: 'compra compre flores insumos rosas plaza', go: 'compras', mod: 'compras' },
+  { t: 'Cambiar lo que me cuesta un insumo', p: 'insumo costo precio flor rosa material', go: 'compras', mod: 'compras' },
+  { t: 'Registrar un gasto del día', p: 'gasto gasolina bolsas transporte pague', fn: () => openSheet(() => gastoSheet('Otro gasto')), mod: 'gastos' },
+  { t: 'Agregar un gasto fijo', p: 'arriendo servicios fijo mensual contador', fn: () => ACT.gfNew(), mod: 'gastos', own: 1 },
+  { t: 'Pagarle a alguien del equipo', p: 'pagar sueldo empleado nomina debo', go: 'equipo', mod: 'equipo', own: 1 },
+  { t: 'Dar un vale o adelanto', p: 'vale adelanto prestamo empleado', go: 'equipo', mod: 'equipo', own: 1 },
+  { t: 'Agregar a alguien del equipo', p: 'empleado nuevo florista domiciliario secretaria', fn: () => ACT.empNew(), mod: 'equipo', own: 1 },
+  { t: 'Agregar un cliente', p: 'cliente nuevo contacto celular', fn: () => ACT.cliNew(), mod: 'clientes' },
+  { t: 'A quién le escribo hoy', p: 'cumpleaños aniversario fecha especial whatsapp promocion mensaje', go: 'clientes', mod: 'clientes' },
+  { t: 'Cobrar saldos pendientes', p: 'abono saldo debe cobrar pendiente', fn: () => { UI.vf = 'debe'; go('ventas'); }, mod: 'abonos' },
+  { t: 'Prender o apagar funciones', p: 'funcionalidades modulos apagar prender quitar', go: 'funciones', own: 1 },
+  { t: 'Deshacer un cambio', p: 'deshacer error equivoque historial volver', fn: () => { go('mi-negocio'); setTimeout(() => { const e = document.getElementById('historial'); if (e) e.scrollIntoView({ block: 'start' }); }, 80); }, own: 1 },
+  { t: 'Guardar una copia de seguridad', p: 'copia respaldo descargar backup guardar', fn: () => { go('mi-negocio'); setTimeout(() => { const e = document.getElementById('respaldo'); if (e) e.scrollIntoView({ block: 'start' }); }, 80); }, own: 1 },
+  { t: 'Aprender paso a paso', p: 'guia ayuda tutorial misiones aprender', go: 'guia' }
+];
+function buscarHTML(q) {
+  q = sinTilde(q).trim();
+  const ok = a => (!a.own || ROL() === 'duena') && (!a.mod || on(a.mod)) && (!a.go || navFor().some(n => n.id === a.go));
+  let acc = ACCIONES.filter(ok);
+  if (q) acc = acc.filter(a => q.split(/\s+/).every(w => sinTilde(a.t + ' ' + a.p).includes(w)));
+  const prods = q.length >= 2 ? filtrarProductos(q, 'todos').slice(0, 6) : [];
+  const clis = q.length >= 2 && on('clientes') && ROL() !== 'florista' ? S.clientes.filter(c => sinTilde(c.nombre).includes(q) || (q.replace(/\D/g, '').length >= 3 && c.telefono.includes(q.replace(/\D/g, '')))).slice(0, 5) : [];
+  let h = '';
+  if (acc.length) h += `<div class="sect">${q ? 'Lo que puedes hacer' : 'Lo más usado'}</div>` + acc.slice(0, q ? 8 : 9).map(a => `<button type="button" class="sug" data-act="bAcc" data-id="${ACCIONES.indexOf(a)}"><span class="row start" style="gap:10px"><span class="badge ok">Acción</span><b style="text-align:left">${esc(a.t)}</b></span>${ic('chevR', 18)}</button>`).join('');
+  if (prods.length) h += `<div class="sect">Arreglos</div>` + prods.map(p => `<button type="button" class="sug" data-act="bProd" data-id="${p.id}"><span class="row start" style="gap:10px;min-width:0">${p.foto ? `<img src="${p.foto}" alt="" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none">` : ''}<span class="col" style="gap:0;text-align:left"><b>${esc(p.code || '')} · ${esc(p.nombre)}</b><span class="xs muted">${money(p.precio)}</span></span></span>${ic('chevR', 18)}</button>`).join('');
+  if (clis.length) h += `<div class="sect">Clientes</div>` + clis.map(c => `<button type="button" class="sug" data-act="bCli" data-id="${c.id}"><span class="col" style="gap:0;text-align:left"><b>${esc(c.nombre)}</b><span class="xs muted">${phoneFmt(c.telefono)}</span></span>${ic('chevR', 18)}</button>`).join('');
+  return h || '<div class="empty">No encontramos nada con esa palabra. Prueba con otra, por ejemplo «precio», «gasto» o «ayer».</div>';
+}
+function buscarSheet() {
+  return `<div class="sheet-h"><h3>¿Qué necesitas?</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <input class="inp" id="bq" data-in="bq" placeholder="Escribe lo que quieres hacer, un arreglo o un cliente" autocomplete="off" aria-label="Buscar">
+  <div class="sugs" id="bres">${buscarHTML('')}</div>`;
+}
+
+/* =========================================================
+   Funcionalidades
+   ========================================================= */
+function funcsHTML() {
+  const q = sinTilde(UI.fq || '').trim();
+  const grupos = FUNCS.map(g => ({ ...g, items: g.items.filter(it => !q || sinTilde(it.t + ' ' + it.d).includes(q)) })).filter(g => g.items.length);
+  return grupos.map(g => `<div class="sect">${esc(g.g)}</div><div class="card" style="padding:4px 16px">${g.items.map(it => `<div class="list-item"><span class="col" style="flex:1;gap:2px"><b style="font-size:15.5px">${esc(it.t)}</b><span class="small muted">${esc(it.d)}</span></span>${it.k ? `<button type="button" class="toggle ${on(it.k) ? 'on' : ''}" data-act="funcTog" data-v="${it.k}" aria-pressed="${on(it.k)}" aria-label="${esc(it.t)}"><i></i></button>` : '<span class="badge ok">Siempre</span>'}</div>`).join('')}</div>`).join('') || '<div class="card empty">No encontramos esa función.</div>';
+}
+VIEWS.funciones = () => `<h2 class="v-title">Funcionalidades</h2><p class="v-sub">Prende solo lo que usa tu negocio. Lo que apagues desaparece del menú y de los formularios, y lo puedes volver a prender cuando quieras.</p>
+  <input class="inp" id="fq" data-in="fq" value="${esc(UI.fq || '')}" placeholder="Buscar una función, por ejemplo «domicilio»" autocomplete="off" aria-label="Buscar una función">
+  <div id="flist">${funcsHTML()}</div>`;
+
+/* =========================================================
+   Historial de cambios (para deshacer) y copia de seguridad
+   ========================================================= */
+let HIST = [], lastJSON = null, pendingDesc = null;
+const HKEY = () => KEY + '-historial';
+function guardarHist() {
+  HIST = HIST.filter(h => h.desc).concat(HIST.filter(h => !h.desc)).slice(0, 15);
+  try { localStorage.setItem(HKEY(), JSON.stringify(HIST.filter(h => h.desc))); }
+  catch (e) { try { HIST = HIST.slice(0, 4); localStorage.setItem(HKEY(), JSON.stringify(HIST.filter(h => h.desc))); } catch (e2) { } }
+}
+function cargarHist() { try { HIST = JSON.parse(localStorage.getItem(HKEY()) || '[]') || []; } catch (e) { HIST = []; } lastJSON = JSON.stringify(S); }
+function marca(desc) { pendingDesc = desc; }
+function historialHTML() {
+  const L = HIST.filter(h => h.desc);
+  return `<div class="card" id="historial" style="display:flex;flex-direction:column;gap:6px"><span class="row start" style="gap:8px"><b>Historial de cambios</b>${info('historial')}</span>
+  ${L.length ? L.map(h => `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:180px"><b style="font-size:15px">${esc(h.desc)}</b><span class="small muted">${fCorta(parseD(h.fecha))} · ${hora(h.fecha)}</span></span>${UI.undoAsk === h.id ? `<span class="row" style="gap:6px"><button type="button" class="btn btn-d xs" data-act="histOk" data-id="${h.id}">Sí, deshacer</button><button type="button" class="btn btn-l xs" data-act="histNo">No</button></span>` : `<button type="button" class="btn btn-l xs" data-act="histAsk" data-id="${h.id}">${ic('undo', 16)}Deshacer</button>`}</div>`).join('') : '<div class="empty">Todavía no hay cambios para deshacer.</div>'}
+  <span class="xs muted">Deshacer un cambio también deshace los que hiciste después de él.</span></div>`;
+}
+function respaldoHTML() {
+  return `<div class="card" id="respaldo" style="display:flex;flex-direction:column;gap:10px"><b>Copia de seguridad</b><span class="small muted">Tus datos se guardan en este navegador. Descarga una copia de vez en cuando, y si cambias de celular o de computador, cárgala allá.</span>
+  <div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" class="btn btn-l" style="flex:1" data-act="bkDown">${ic('download', 18)}Descargar copia</button><label class="btn btn-l" style="flex:1;cursor:pointer" for="bkFile">${ic('upload', 18)}Cargar una copia</label><input type="file" id="bkFile" accept=".json,application/json" data-in="bk" class="sr"></div></div>`;
+}
+
+const EXT_ACT = {
+  perMove: (el, id, v) => perMover(Number(v)),
+  perOpen: () => openSheet(periodoSheet),
+  perSet: (el, id, v) => { UI.per = { k: v }; closeSheet(); render(); },
+  perDia: () => { const v = document.getElementById('perDia').value; if (!v) return toast('Elige un día'); perPoner(parseD(v), parseD(v)); closeSheet(); render(); },
+  perRango: () => { const a = document.getElementById('perA').value, b = document.getElementById('perB').value; if (!a || !b) return toast('Elige las dos fechas'); let x = parseD(a), y = parseD(b); if (y < x) { const t = x; x = y; y = t; } perPoner(x, y); closeSheet(); render(); },
+  perDiaSet: (el, id, v) => { perPoner(parseD(v), parseD(v)); render(); window.scrollTo(0, 0); },
+  pePleg: () => { S.guia.plegado = !S.guia.plegado; save(); render(); },
+  buscar: () => { openSheet(buscarSheet); setTimeout(() => { const i = document.getElementById('bq'); if (i) i.focus(); }, 60); },
+  bAcc: (el, id) => { const a = ACCIONES[Number(id)]; closeSheet(); if (a.fn) a.fn(); else go(a.go); },
+  bProd: (el, id) => { closeSheet(); if (ROL() === 'duena') ACT.prodOpen(null, id); else ACT.venderEste(null, id); },
+  bCli: (el, id) => { closeSheet(); ACT.cliOpen(null, id); },
+  venderEste: (el, id) => { const p = prod(id); if (!p) return; if (!D || D.editId) D = newDraft(); D.items[id] = D.items[id] || { cant: 0, precio: p.precio }; D.items[id].cant++; closeSheet(); go('vender'); },
+  funcTog: (el, id, v) => { const apaga = on(v); marca(`${apaga ? 'Apagaste' : 'Prendiste'} «${funcNombre(v)}»`); S.config.mods = S.config.mods || {}; S.config.mods[v] = !apaga; if (apaga && S.guia) MIS.forEach(m => { if (m.mod === v && misState(m) === 'pend') S.guia.estado[m.id] = 'skip'; }); if (!apaga && D && !D.editId) D = null; save(); renderShell(); render(); toast(apaga ? `Apagaste «${funcNombre(v)}»` : `Prendiste «${funcNombre(v)}»`); },
+  histAsk: (el, id) => { UI.undoAsk = id; render(); },
+  histNo: () => { UI.undoAsk = null; render(); },
+  histOk: (el, id) => {
+    const i = HIST.findIndex(h => h.id === id); if (i < 0) return;
+    try { S = JSON.parse(HIST[i].data); } catch (e) { return toast('No se pudo deshacer este cambio'); }
+    const desc = HIST[i].desc; HIST = HIST.slice(i + 1); lastJSON = JSON.stringify(S);
+    try { localStorage.setItem(KEY, lastJSON); } catch (e) { }
+    guardarHist(); UI.undoAsk = null; D = null; renderShell(); render(); toast(`Listo, se deshizo: ${desc}`);
+  },
+  bkDown: () => {
+    try {
+      const blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `copia-${sinTilde(S.config.negocio || 'mi-negocio').replace(/[^a-z0-9]+/g, '-')}-${iso(TODAY())}.json`;
+      document.body.appendChild(a); a.click(); a.remove(); toast('Copia descargada');
+    } catch (e) { toast('No se pudo descargar la copia en este navegador'); }
+  },
+  saldoOk: (el, id) => { const v = S.ventas.find(x => x.id === id); if (!v) return; marca(`Cobraste el saldo de ${money(v.saldo)}`); v.abono = v.total; v.saldo = 0; save(); render(); toast('Saldo cobrado'); },
+  editVenta: (el, id) => { const v = S.ventas.find(x => x.id === id); if (!v) return; D = draftDeVenta(v); go('vender'); window.scrollTo(0, 0); },
+  vCancelEdit: () => { D = newDraft(); go('ventas'); },
+  vFecha: (el, id, v) => { const T = TODAY(); D.fecha = v === 'hoy' ? iso(T) : v === 'ayer' ? iso(addD(T, -1)) : (D.fecha === iso(T) || D.fecha === iso(addD(T, -1)) ? iso(addD(T, -2)) : D.fecha); render(); },
+  vPagoTipo: (el, id, v) => { D.pagoTipo = v; render(); },
+  vf: (el, id, v) => { UI.vf = v; render(); },
+  cliNew: () => openSheet(() => `<div class="sheet-h"><h3>Cliente nuevo</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+    <div class="field"><label for="ncn">Nombre</label><input class="inp" id="ncn" placeholder="Nombre y apellido"></div>
+    <div class="field"><label for="nct">Celular</label><input class="inp" id="nct" inputmode="tel" placeholder="300 000 0000"></div>
+    <button type="button" class="btn btn-p block" data-act="cliNewOk">${ic('check', 20, 2.6)}Guardar cliente</button>`),
+  cliNewOk: () => { const n = document.getElementById('ncn').value.trim(); if (!n) return toast('Escribe el nombre del cliente'); marca(`Agregaste a ${n}`); const c = { id: 'c' + uid(), nombre: n, telefono: document.getElementById('nct').value.replace(/\D/g, ''), autoriza: true, personas: [], contactos: [], desde: iso(TODAY()) }; S.clientes.push(c); save(); CS = { id: c.id, per: null, msg: null }; openSheet(cliSheet); render(); }
+};
+const EXT_INP = {
+  bq: el => { const r = document.getElementById('bres'); if (r) r.innerHTML = buscarHTML(el.value); },
+  fq: el => { UI.fq = el.value; const l = document.getElementById('flist'); if (l) l.innerHTML = funcsHTML(); },
+  vsq: el => { UI.vsq = el.value; render(); },
+  vfecha: el => { if (el.value) D.fecha = el.value > iso(TODAY()) ? iso(TODAY()) : el.value; },
+  vdom: el => { D.dom = num(el.value); el.value = D.dom ? money(D.dom) : ''; updFoot(); },
+  vabono: el => { D.abono = num(el.value); el.value = D.abono ? money(D.abono) : ''; updFoot(); },
+  bk: el => {
+    const f = el.files && el.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      let x; try { x = JSON.parse(r.result); } catch (e) { return toast('Ese archivo no es una copia de la plataforma'); }
+      if (!x || !Array.isArray(x.productos) || !x.config) return toast('Ese archivo no es una copia de la plataforma');
+      marca('Cargaste una copia de seguridad'); x.v = S.v; S = x; save(); D = null; renderShell(); render(); toast('Copia cargada');
+    };
+    r.readAsText(f); el.value = '';
+  }
+};
 
 /* ---------- Vender ---------- */
 let D;
-function newDraft() { const def = (S.empleados.find(e => e.tipo === 'producto' || e.tipo === 'mixto') || { id: 'duena' }).id; return { items: {}, clienteId: null, q: '', nuevo: { nombre: '', telefono: '' }, perSel: 'ninguna', per: { nombre: '', relacion: '', ocasion: 'Cumpleaños', fecha: '' }, empleadoId: ROL() === 'florista' ? S.rol : def, origen: 'google', parte: '', pago: 'Nequi' }; }
+function newDraft() { const def = (S.empleados.find(e => e.tipo === 'producto' || e.tipo === 'mixto') || { id: 'duena' }).id; return { items: {}, clienteId: null, q: '', nuevo: { nombre: '', telefono: '' }, perSel: 'ninguna', per: { nombre: '', relacion: '', ocasion: 'Cumpleaños', fecha: '' }, empleadoId: ROL() === 'florista' ? S.rol : on('equipo') ? def : 'duena', origen: on('comision') ? 'google' : 'otro', parte: '', pago: 'Nequi', fecha: iso(TODAY()), dom: 0, pagoTipo: 'todo', abono: 0 }; }
 VIEWS.vender = () => {
   if (!D) D = newDraft();
   const arr = S.productos.filter(p => !p.anexo), ext = S.productos.filter(p => p.anexo);
   const lines = Object.entries(D.items).filter(([, x]) => x.cant > 0);
   const c = cliente(D.clienteId);
   const hacen = [...S.empleados.filter(e => e.tipo === 'producto' || e.tipo === 'mixto' || e.tipo === 'fijo'), { id: 'duena', nombre: `${S.config.duena || 'Yo'} (dueña)` }];
-  return `<h2 class="v-title">Nueva venta</h2><p class="v-sub">Toca, no tienes que escribir casi nada.</p>
-  <div class="sect">1 · ¿Qué vendiste?</div>
+  let nS = 0; const T0 = iso(TODAY()), AY = iso(addD(TODAY(), -1));
+  const fk = D.fecha === T0 ? 'hoy' : D.fecha === AY ? 'ayer' : 'otro';
+  return `${D.editId ? `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Corregir venta</h2><button type="button" class="btn btn-l sm" data-act="vCancelEdit">${ic('x', 18)}No corregir</button></div><p class="v-sub">Cambia lo que necesites y toca «Guardar cambios».</p>` : `<h2 class="v-title">Nueva venta</h2><p class="v-sub">Toca, no tienes que escribir casi nada.</p>`}
+  <div class="sect">¿Cuándo fue?</div>
+  <div class="chips" data-tour="cuando">${[['hoy', 'Hoy'], ['ayer', 'Ayer'], ['otro', 'Otro día']].map(([k, l]) => `<button type="button" class="chip ${fk === k ? 'on' : ''}" data-act="vFecha" data-v="${k}">${l}</button>`).join('')}
+  ${fk === 'otro' ? `<input class="inp" type="date" id="vfecha" data-in="vfecha" max="${T0}" value="${D.fecha}" aria-label="Fecha de la venta" style="max-width:200px">` : ''}</div>
+  <div class="sect">${++nS} · ¿Qué vendiste?</div>
   <div data-tour="ptiles" style="display:flex;flex-direction:column;gap:10px">
     <input class="inp" id="vps" data-in="vps" value="${esc(UI.vps)}" placeholder="Busca por nombre o por código, ej: 14" autocomplete="off" aria-label="Buscar arreglo">
     <div class="scrollx">${catChips(UI.vcat, 'vcat')}</div>
     <div class="ptiles" id="vgrid">${vgridHTML()}</div>
   </div>
-  <div class="sect">2 · ¿Algo extra? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span></div>
+  <div class="sect">${++nS} · ¿Algo extra? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span></div>
   <div class="chips" data-tour="extras">${ext.length ? '' : '<span class="small muted">Por ahora no tienes extras aparte. Si vendes chocolates o peluches sueltos, Líderes Locales te los agrega.</span>'}${ext.map(p => `<button type="button" class="chip ${D.items[p.id] && D.items[p.id].cant ? 'on' : ''}" data-act="vExtra" data-id="${p.id}">${esc(p.nombre)} · ${money(p.precio)}</button>`).join('')}</div>
   ${lines.length ? `<div class="card" style="padding:6px 14px"><div class="small strong" style="margin:6px 0">Tu venta · puedes cambiar el precio</div>
     ${lines.map(([pid, x]) => { const p = prod(pid); return `<div class="cartline"><span class="row start" style="gap:8px;min-width:0">${p.foto ? `<img src="${p.foto}" alt="" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex:none">` : ''}<span class="col" style="gap:0"><b style="font-size:14.5px">${esc(p.nombre)}</b><span class="xs muted">${p.code || ''}${p.anexo ? ' · Extra' : ''}</span></span></span>
     <span class="stepper"><button type="button" data-act="vMinus" data-id="${pid}" aria-label="Quitar uno">${ic('minus', 18, 2.6)}</button><span>${x.cant}</span><button type="button" data-act="vAdd" data-id="${pid}" aria-label="Agregar uno">${ic('add', 18, 2.6)}</button></span>
     <input class="inp num" id="vp-${pid}" data-in="vPrecio" data-id="${pid}" inputmode="numeric" value="${money(x.precio)}" aria-label="Precio de ${esc(p.nombre)}" style="min-height:44px;font-size:15px;padding:0 10px"></div>`; }).join('')}</div>` : ''}
 
-  <div class="sect">3 · Cliente</div>
+  ${on('clientes') ? `<div class="sect">${++nS} · Cliente</div>
   <div data-tour="cliente">${c ? `<div class="card row"><div class="row start" style="gap:12px"><span class="thumb t-mix" style="border-radius:50%;font-weight:800">${initials(c.nombre)}</span><div class="col" style="gap:0"><b>${esc(c.nombre)}</b><span class="small muted">${phoneFmt(c.telefono)} · ${S.ventas.filter(v => v.clienteId === c.id).length} compras</span></div></div><button type="button" class="btn btn-l sm" data-act="vCliClear">Cambiar</button></div>`
     : `<div class="card" style="display:flex;flex-direction:column;gap:10px">
       <div class="field"><label for="vq">Buscar por nombre o teléfono</label><input class="inp" id="vq" data-in="vq" value="${esc(D.q)}" placeholder="Ej: Carlos o 300 555" autocomplete="off"></div>
@@ -812,9 +1176,9 @@ VIEWS.vender = () => {
       <div class="small strong" style="margin-top:4px">¿Es un cliente nuevo?</div>
       <div class="fgrid"><div class="field"><label for="vnn">Nombre</label><input class="inp" id="vnn" data-in="vnn" value="${esc(D.nuevo.nombre)}" placeholder="Nombre y apellido"></div>
       <div class="field"><label for="vnt">Celular</label><input class="inp" id="vnt" data-in="vnt" inputmode="tel" value="${esc(D.nuevo.telefono)}" placeholder="300 000 0000"></div></div>
-    </div>`}</div>
+    </div>`}</div>` : ''}
 
-  ${S.config.mods.clientes ? `<div class="sect">4 · ¿Para quién y qué ocasión?</div>
+  ${on('clientes') ? `<div class="sect">${++nS} · ¿Para quién y qué ocasión?</div>
   <div class="card" data-tour="persona" style="display:flex;flex-direction:column;gap:10px">
     <div class="chips">${c ? c.personas.map(p => `<button type="button" class="chip ${D.perSel === p.id ? 'on' : ''}" data-act="vPer" data-id="${p.id}">${esc(p.nombre)} · ${esc(p.relacion.toLowerCase())}</button>`).join('') : ''}
     <button type="button" class="chip ${D.perSel === 'nueva' ? 'on' : ''}" data-act="vPer" data-id="nueva">${c && c.personas.length ? 'Otra persona' : 'Agregar persona y fecha'}</button>
@@ -828,15 +1192,20 @@ VIEWS.vender = () => {
       <div class="chips">${['Cumpleaños', 'Aniversario', 'Grado'].map(x => `<button type="button" class="chip ${D.per.ocasion === x ? 'on' : ''}" data-act="vOca" data-v="${x}">${x}</button>`).join('')}</div>` : ''}
   </div>` : ''}
 
-  <div class="sect">${S.config.mods.clientes ? 5 : 4} · ¿Quién lo hizo?</div>
-  <div class="chips" data-tour="quien">${hacen.map(e => `<button type="button" class="chip ${D.empleadoId === e.id ? 'on' : ''}" data-act="vEmp" data-id="${e.id}" ${ROL() === 'florista' && e.id !== S.rol ? 'disabled' : ''}>${esc(e.nombre)}</button>`).join('')}</div>
+  ${on('equipo') && hacen.length > 1 ? `<div class="sect">${++nS} · ¿Quién lo hizo?</div>
+  <div class="chips" data-tour="quien">${hacen.map(e => `<button type="button" class="chip ${D.empleadoId === e.id ? 'on' : ''}" data-act="vEmp" data-id="${e.id}" ${ROL() === 'florista' && e.id !== S.rol ? 'disabled' : ''}>${esc(e.nombre)}</button>`).join('')}</div>` : ''}
 
-  <div class="sect">${S.config.mods.clientes ? 6 : 5} · ¿Cómo llegó el cliente?</div>
+  ${on('comision') ? `<div class="sect">${++nS} · ¿Cómo llegó el cliente?</div>
   <div class="chips" data-tour="origen">${[['google', 'Por Google'], ['otro', 'Por otro lado'], ['parte', 'Solo una parte por Google']].map(([k, l]) => `<button type="button" class="chip ${D.origen === k ? 'on' : ''}" data-act="vOri" data-v="${k}">${l}</button>`).join('')}</div>
-  ${D.origen === 'parte' ? `<div class="field" style="max-width:320px"><label for="vparte">¿Cuánto de esta venta llegó por Google?</label><input class="inp num" id="vparte" data-in="vparte" inputmode="numeric" value="${D.parte ? money(num(D.parte)) : ''}" placeholder="$0"></div>` : ''}
+  ${D.origen === 'parte' ? `<div class="field" style="max-width:320px"><label for="vparte">¿Cuánto de esta venta llegó por Google?</label><input class="inp num" id="vparte" data-in="vparte" inputmode="numeric" value="${D.parte ? money(num(D.parte)) : ''}" placeholder="$0"></div>` : ''}` : ''}
 
-  <div class="sect">${S.config.mods.clientes ? 7 : 6} · ¿Cómo pagó?</div>
+  ${on('domicilios') ? `<div class="sect">${++nS} · ¿Cobraste domicilio? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span></div>
+  <div class="row start" style="gap:8px;flex-wrap:wrap"><input class="inp num" id="vdom" data-in="vdom" inputmode="numeric" value="${D.dom ? money(D.dom) : ''}" placeholder="$0 si no cobraste" aria-label="Valor del domicilio" style="max-width:220px">${info('domicilio')}</div>` : ''}
+
+  <div class="sect">${++nS} · ¿Cómo pagó?</div>
   <div class="chips" data-tour="pago">${['Nequi', 'Efectivo', 'Transferencia', 'Tarjeta'].map(k => `<button type="button" class="chip ${D.pago === k ? 'on' : ''}" data-act="vPago" data-v="${k}">${k}</button>`).join('')}</div>
+  ${on('abonos') ? `<div class="chips">${[['todo', 'Pagó todo'], ['abono', 'Dejó un abono']].map(([k, l]) => `<button type="button" class="chip ${D.pagoTipo === k ? 'on' : ''}" data-act="vPagoTipo" data-v="${k}">${l}</button>`).join('')}</div>
+  ${D.pagoTipo === 'abono' ? `<div class="field" style="max-width:320px"><label for="vabono">¿Cuánto abonó?</label><input class="inp num" id="vabono" data-in="vabono" inputmode="numeric" value="${D.abono ? money(D.abono) : ''}" placeholder="$0"><span class="xs muted">Te recordamos cobrar el resto en el inicio y en Ventas.</span></div>` : ''}` : ''}
   <div class="vfoot" id="vfoot">${footHTML()}</div>`;
 };
 function sugsHTML() {
@@ -849,10 +1218,10 @@ function sugsHTML() {
 function footHTML() {
   const k = calcVenta(D);
   if (!k.its.length) return `<span class="small muted" style="flex:1">Toca un producto para empezar</span><button type="button" class="btn btn-p" disabled>Guardar venta</button>`;
-  if (ROL() !== 'duena') return `<div class="col" style="flex:1;gap:0"><span class="small muted">Total</span><b class="num" style="font-size:20px">${money(k.total)}</b></div><button type="button" class="btn btn-p" data-act="vSave">${ic('check', 20, 2.6)}Guardar venta</button>`;
+  if (ROL() !== 'duena') return `<div class="col" style="flex:1;gap:0"><span class="small muted">Total</span><b class="num" style="font-size:20px">${money(k.total)}</b></div><button type="button" class="btn btn-p" data-act="vSave">${ic('check', 20, 2.6)}${D.editId ? 'Guardar cambios' : 'Guardar venta'}</button>`;
   const sr = k.its.some(x => sinReceta(prod(x.pid)));
   const [cls, lab] = sr ? ['warn', 'Falta la receta'] : semaforo(pct(k.quedo, k.total));
-  return `<div class="col" style="flex:1;gap:2px;min-width:0"><span class="small muted">Vendes <b class="num" style="color:var(--ink)">${money(k.total)}</b> y te quedan</span><span class="row start" style="gap:8px;flex-wrap:wrap"><b class="num" style="font-size:20px;color:var(--green-d)">${money(k.quedo)}</b><span class="badge ${cls}">${lab}</span></span></div><button type="button" class="btn btn-p" data-act="vSave">${ic('check', 20, 2.6)}Guardar</button>`;
+  return `<div class="col" style="flex:1;gap:2px;min-width:0"><span class="small muted">Vendes <b class="num" style="color:var(--ink)">${money(k.total)}</b> y te quedan</span><span class="row start" style="gap:8px;flex-wrap:wrap"><b class="num" style="font-size:20px;color:var(--green-d)">${money(k.quedo)}</b><span class="badge ${cls}">${lab}</span></span>${k.dom ? `<span class="xs muted">Incluye ${money(k.dom)} de domicilio</span>` : ''}</div><button type="button" class="btn btn-p" data-act="vSave">${ic('check', 20, 2.6)}${D.editId ? 'Guardar cambios' : 'Guardar'}</button>`;
 }
 function saveVenta() {
   const k = calcVenta(D);
@@ -869,10 +1238,18 @@ function saveVenta() {
     perNueva = { id: uid(), nombre: D.per.nombre.trim(), relacion: D.per.relacion || 'Otro', ocasion: D.per.ocasion, fecha: f };
     c.personas.push(perNueva); perId = perNueva.id;
   }
-  const recuperada = !!(c && c.contactos.some(x => dBetween(parseD(x.fecha), TODAY()) <= 30));
-  const v = { id: uid(), fecha: isoDT(new Date()), items: k.its.map(({ mo, ...x }) => x), clienteId: c ? c.id : null, personaId: perId, empleadoId: D.empleadoId, origen: D.origen, parte: k.parte, pago: D.pago, total: k.total, insumos: k.insumos, manoObra: k.mo, comision: k.com, quedo: k.quedo, recuperada, sinReceta: k.its.some(x => sinReceta(prod(x.pid))) };
-  S.ventas.push(v); S.pasos.venta = true; save();
+  const old = D.editId ? S.ventas.find(x => x.id === D.editId) : null;
+  const recuperada = old ? !!old.recuperada : !!(c && c.contactos.some(x => dBetween(parseD(x.fecha), TODAY()) <= 30));
+  const fd = D.fecha && D.fecha <= iso(TODAY()) ? D.fecha : iso(TODAY());
+  const fecha = old && old.fecha.slice(0, 10) === fd ? old.fecha : fd === iso(TODAY()) ? isoDT(new Date()) : fd + 'T12:00';
+  const abono = on('abonos') && D.pagoTipo === 'abono' ? Math.min(num(D.abono), k.total) : k.total;
+  const v = { id: old ? old.id : uid(), fecha, domicilio: k.dom, abono, saldo: k.total - abono, items: k.its.map(({ mo, ...x }) => x), clienteId: c ? c.id : null, personaId: perId, empleadoId: D.empleadoId, origen: D.origen, parte: k.parte, pago: D.pago, total: k.total, insumos: k.insumos, manoObra: k.mo, comision: k.com, quedo: k.quedo, recuperada, sinReceta: k.its.some(x => sinReceta(prod(x.pid))) };
+  marca(old ? `Corregiste una venta de ${money(v.total)}` : `Registraste una venta de ${money(v.total)}${fd !== iso(TODAY()) ? ' del ' + fCorta(parseD(fd)) : ''}`);
+  if (old) S.ventas[S.ventas.indexOf(old)] = v; else S.ventas.push(v);
+  S.ventas.sort((x, y) => x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0);
+  S.pasos.venta = true; save();
   D = newDraft();
+  if (old) { go('ventas'); toast('Venta corregida'); return; }
   openSheet(() => ventaGuardadaHTML(v, nuevoCli, perNueva));
   render();
 }
@@ -881,10 +1258,10 @@ function ventaGuardadaHTML(v, nuevoCli, perNueva) {
   const per = c && v.personaId ? c.personas.find(p => p.id === v.personaId) : null;
   const [cls, lab] = v.sinReceta ? ['warn', 'Falta la receta'] : semaforo(pct(v.quedo, v.total));
   const e = emp(v.empleadoId);
-  return `<div class="sheet-h"><span class="thumb" style="background:var(--green);color:#fff;border-radius:50%">${ic('check', 24, 2.8)}</span><h3>Venta guardada</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  return `<div class="sheet-h"><span class="thumb" style="background:var(--green);color:#fff;border-radius:50%">${ic('check', 24, 2.8)}</span><h3>Venta guardada${v.fecha.slice(0, 10) !== iso(TODAY()) ? ' del ' + fCorta(parseD(v.fecha)) : ''}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
   ${own ? `<div class="card" style="background:var(--green-l);border-color:#CDE7DA"><div class="row"><span class="strong">Te quedaron ${info('quedaron')}</span><span class="badge ${cls}">${lab}</span></div><div class="big num" style="color:var(--green-d)">${money(v.quedo)}</div><div class="small muted">Es el ${pct(v.quedo, v.total)}% de lo que vendiste</div></div>
   <div class="card" style="padding:4px 16px">
-    <div class="line"><b>Vendiste</b><b class="num">${money(v.total)}</b></div>
+    <div class="line"><b>Vendiste</b><b class="num">${money(v.total)}</b></div>${v.domicilio ? `<div class="line"><span>Incluye domicilio</span><span class="num">${money(v.domicilio)}</span></div>` : ''}
     <div class="line"><span class="row start" style="gap:8px">− Flores e insumos ${info('insumos')}</span><span class="num">${money(v.insumos)}</span></div>${v.sinReceta ? '<div class="small" style="color:var(--warn);padding:8px 0;line-height:1.45">Este arreglo todavía no tiene receta, así que no se restó lo que cuestan las flores. Ponle receta en Productos.</div>' : ''}
     <div class="line"><span>− ${e ? esc(e.nombre) + ', por este trabajo' : 'Mano de obra (la hiciste tú)'}</span><span class="num">${money(v.manoObra)}</span></div>
     <div class="line"><span class="row start" style="gap:8px">− Comisión ${v.origen === 'google' ? '(llegó por Google)' : v.origen === 'parte' ? `(sobre ${money(v.parte)})` : '(no llegó por Google)'} ${info('comision')}</span><span class="num">${money(v.comision)}</span></div>
@@ -895,6 +1272,7 @@ function ventaGuardadaHTML(v, nuevoCli, perNueva) {
     ${c ? `<div class="line"><span>${nuevoCli ? 'Cliente nuevo' : 'Cliente'}: ${esc(c.nombre)}</span><span class="muted">${S.ventas.filter(x => x.clienteId === c.id).length} compras</span></div>` : '<div class="line"><span>Venta sin datos del cliente</span><span class="muted">—</span></div>'}
     ${per && per.fecha ? `<div class="line"><span>${esc(per.ocasion)} de ${esc(per.nombre)} · ${fCorta(nextOcc(per.fecha, TODAY()))}</span><span class="muted">Te avisamos</span></div>` : ''}
     ${e && v.manoObra ? `<div class="line"><span>Pago de ${esc(e.nombre)}</span><span class="muted num">+ ${money(v.manoObra)}</span></div>` : ''}
+    ${v.saldo > 0 ? `<div class="line"><span>Abonó ${money(v.abono)}, falta por cobrar</span><span class="badge bad">${money(v.saldo)}</span></div>` : ''}
     ${v.recuperada ? `<div class="line"><span>Venta recuperada ${info('recuperadas')}</span><span class="badge rs">Por tu mensaje</span></div>` : ''}
   </div>
   <div class="row" style="gap:10px"><button type="button" class="btn btn-p" style="flex:1" data-act="close">Otra venta</button><button type="button" class="btn btn-l" style="flex:1" data-act="closeGo" data-id="inicio">Ir al inicio</button></div>`;
@@ -903,14 +1281,22 @@ function ventaGuardadaHTML(v, nuevoCli, perNueva) {
 /* ---------- Ventas ---------- */
 VIEWS.ventas = () => {
   const own = ROL() === 'duena';
-  const [a, b] = UI.vper === 'hoy' ? [TODAY(), TODAY()] : rango(UI.vper);
+  const [a, b] = perRango();
   let vs = ventasEn(a, b); if (ROL() === 'florista') vs = vs.filter(v => v.empleadoId === S.rol);
+  if (UI.vf === 'debe') vs = S.ventas.filter(v => v.saldo > 0);
+  else if (UI.vf === 'google') vs = vs.filter(v => v.origen === 'google' || v.origen === 'parte');
+  else if (UI.vf === 'otro') vs = vs.filter(v => v.origen === 'otro');
+  const q = sinTilde(UI.vsq || '').trim();
+  if (q) vs = vs.filter(v => { const c = cliente(v.clienteId); return sinTilde(v.items.map(x => x.nombre + ' ' + ((prod(x.pid) || {}).code || '')).join(' ') + ' ' + (c ? c.nombre + ' ' + c.telefono : '') + ' ' + v.pago).includes(q); });
   const byDay = {}; vs.forEach(v => (byDay[v.fecha.slice(0, 10)] = byDay[v.fecha.slice(0, 10)] || []).push(v));
   const days = Object.keys(byDay).sort().reverse();
-  return `<h2 class="v-title">Ventas</h2>
-  <div class="chips">${[['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes']].map(([k, l]) => `<button type="button" class="chip ${UI.vper === k ? 'on' : ''}" data-act="vper" data-v="${k}">${l}</button>`).join('')}</div>
-  <div class="card row"><div class="col"><span class="lab">${vs.length} ventas</span><b class="num" style="font-size:24px">${money(vs.reduce((s, v) => s + v.total, 0))}</b></div>${own ? `<div class="col" style="align-items:flex-end"><span class="lab">Te quedaron ${info('quedaron')}</span><b class="num" style="font-size:24px;color:var(--green-d)">${money(vs.reduce((s, v) => s + v.quedo, 0))}</b></div>` : ''}</div>
-  ${days.length ? days.map(d => { const L = byDay[d]; return `<div class="sect">${fLarga(parseD(d))} · ${money(L.reduce((s, v) => s + v.total, 0))}</div><div class="card" style="padding:4px 16px">${L.slice().reverse().map(v => ventaRow(v, own)).join('')}</div>`; }).join('') : '<div class="card empty">No hay ventas en este periodo.</div>'}`;
+  const filtros = [['todas', 'Todas'], ...(on('comision') ? [['google', 'Por Google'], ['otro', 'Por otro lado']] : []), ...(on('abonos') ? [['debe', 'Por cobrar']] : [])];
+  return `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Ventas</h2><a class="btn btn-p sm" href="#vender">${ic('add', 18, 2.6)}Registrar venta</a></div>
+  ${UI.vf === 'debe' ? '<p class="v-sub">Todas las ventas con saldo pendiente, de cualquier fecha.</p>' : periodoBar()}
+  <input class="inp" id="vsq" data-in="vsq" value="${esc(UI.vsq || '')}" placeholder="Buscar por arreglo, código, cliente o forma de pago" autocomplete="off" aria-label="Buscar ventas">
+  ${filtros.length > 1 ? `<div class="chips">${filtros.map(([k, l]) => `<button type="button" class="chip ${UI.vf === k ? 'on' : ''}" data-act="vf" data-v="${k}">${l}</button>`).join('')}</div>` : ''}
+  <div class="card row" style="flex-wrap:wrap"><div class="col"><span class="lab">${vs.length} venta${vs.length === 1 ? '' : 's'}</span><b class="num" style="font-size:24px">${money(vs.reduce((s, v) => s + v.total, 0))}</b></div>${UI.vf === 'debe' ? `<div class="col" style="align-items:flex-end"><span class="lab">Te deben</span><b class="num" style="font-size:24px;color:var(--bad)">${money(vs.reduce((s, v) => s + v.saldo, 0))}</b></div>` : own ? `<div class="col" style="align-items:flex-end"><span class="lab">Te quedaron ${info('quedaron')}</span><b class="num" style="font-size:24px;color:var(--green-d)">${money(vs.reduce((s, v) => s + v.quedo, 0))}</b></div>` : ''}</div>
+  ${days.length ? days.map(d => { const L = byDay[d]; return `<div class="sect">${fLarga(parseD(d))} · ${money(L.reduce((s, v) => s + v.total, 0))}</div><div class="card" style="padding:4px 16px">${L.slice().reverse().map(v => ventaRow(v, own)).join('')}</div>`; }).join('') : `<div class="card empty">${q ? 'No encontramos ventas con esa palabra.' : UI.vf === 'debe' ? 'Nadie te debe. Todo está cobrado.' : 'No hay ventas en estos días.'}${UI.vf === 'todas' && !q ? ' Si se te olvidó anotar una, toca «Registrar venta» y elige el día.' : ''}</div>`}`;
 };
 
 /* ---------- Productos ---------- */
@@ -1075,13 +1461,14 @@ VIEWS.gastos = () => {
   const T = TODAY();
   const fijos = S.gastosFijos.map(g => ({ g, c: ciclo(g, T) }));
   const totalMes = S.gastosFijos.reduce((s, g) => s + mensualEq(g), 0);
-  const recientes = S.gastos.slice().sort((a, b) => a.fecha < b.fecha ? 1 : -1).slice(0, 10);
+  const [ga, gb] = perRango();
+  const recientes = S.gastos.filter(g => g.fecha >= iso(ga) && g.fecha <= iso(gb) + 'T99').sort((a, b) => a.fecha < b.fecha ? 1 : -1);
   const own = ROL() === 'duena';
   const cats = [['Domicilio y gasolina', 'truck', 't-sun'], ['Empaques', 'box', 't-lily'], ['Transporte', 'bus', 't-mix'], ['Otro gasto', 'add', 't-dark']];
   return `<h2 class="v-title">Gastos</h2><p class="v-sub">Los del día con un toque, y los fijos con aviso antes de que venzan.</p>
   <div class="sect">¿Qué gastaste hoy?</div>
   <div data-tour="quick" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
-    <a class="card" href="#compras" style="display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font-weight:800;font-size:14.5px;text-align:center"><span class="thumb t-rose">${ic('flower', 24)}</span>Flores e insumos</a>
+    ${on('compras') ? `<a class="card" href="#compras" style="display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font-weight:800;font-size:14.5px;text-align:center"><span class="thumb t-rose">${ic('flower', 24)}</span>Flores e insumos</a>` : ''}
     ${cats.map(([c, i, t]) => `<button type="button" class="card" data-act="gastoNew" data-v="${c}" style="display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:800;font-size:14.5px"><span class="thumb ${t}">${ic(i, 24)}</span>${c}</button>`).join('')}
   </div>
   <div class="row"><div class="sect">Gastos fijos</div>${own ? `<button type="button" class="btn btn-l xs" data-act="gfNew" data-tour="gfNew">${ic('add', 16, 2.4)}Agregar gasto fijo</button>` : ''}</div>
@@ -1091,8 +1478,10 @@ VIEWS.gastos = () => {
     <span class="badge ${st[0]}">${st[1]}</span>
     ${c.pagado ? `<button type="button" class="btn btn-l xs" data-act="gfUnpay" data-id="${g.id}">Deshacer</button>` : `<button type="button" class="btn btn-p sm" data-act="gfPay" data-id="${g.id}">Pagado</button>`}
     ${own ? `<button type="button" class="btn btn-l xs" data-act="gfEdit" data-id="${g.id}" aria-label="Editar ${esc(g.nombre)}">${ic('edit', 16)}</button>` : ''}</div>`; }).join('')}
-  <div class="sect">Últimos gastos</div>
-  <div class="card" style="padding:4px 16px">${recientes.length ? '' : '<div class="empty">Todavía no registras gastos.</div>'}${recientes.map(g => `<div class="list-item"><span class="col" style="flex:1"><b style="font-size:15px">${esc(g.nota || g.categoria)}</b><span class="small muted">${fLarga(parseD(g.fecha))} · ${esc(g.categoria)}</span></span><b class="num">${money(g.monto)}</b>
+  <div class="sect">Gastos de estos días</div>
+  ${periodoBar()}
+  <div class="card row"><span class="lab">${recientes.length} gasto${recientes.length === 1 ? '' : 's'}</span><b class="num" style="font-size:22px">${money(recientes.reduce((s, g) => s + g.monto, 0))}</b></div>
+  <div class="card" style="padding:4px 16px">${recientes.length ? '' : '<div class="empty">No hay gastos en estos días.</div>'}${recientes.map(g => `<div class="list-item"><span class="col" style="flex:1"><b style="font-size:15px">${esc(g.nota || g.categoria)}</b><span class="small muted">${fLarga(parseD(g.fecha))} · ${esc(g.categoria)}</span></span><b class="num">${money(g.monto)}</b>
     <button type="button" class="btn btn-l xs" data-act="delGasto" data-id="${g.id}" aria-label="Borrar gasto">${ic('trash', 16)}</button></div>`).join('')}</div>`;
 };
 function gastoSheet(cat) {
@@ -1131,6 +1520,7 @@ VIEWS.equipo = () => {
       ${d.vales ? `<div class="line"><span>Vales y adelantos</span><span class="num">${money(-d.vales)}</span></div>` : ''}
       <div class="line strong"><span>Le debes hoy</span><span class="num">${money(d.total)}</span></div>
     </div>
+    ${(() => { const pg = S.gastos.filter(g => g.tipo === 'equipo' && (g.empId === e.id || g.nota === 'Pago a ' + e.nombre)).slice(-3).reverse(); return pg.length ? `<details><summary class="small strong" style="cursor:pointer;min-height:36px;display:flex;align-items:center">Pagos anteriores</summary>${pg.map(g => `<div class="line"><span class="small">${fLarga(parseD(g.fecha))}</span><span class="num small">${money(g.monto)}</span></div>`).join('')}</details>` : ''; })()}
     <div class="row start" style="gap:8px;flex-wrap:wrap">
       <button type="button" class="btn btn-p sm" data-act="empPay" data-id="${e.id}" ${d.total <= 0 ? 'disabled' : ''}>${ic('check', 18, 2.6)}Pagué</button>
       <button type="button" class="btn btn-l sm" data-act="empVale" data-id="${e.id}">Dar vale</button>
@@ -1254,7 +1644,7 @@ function temporadaSheet() {
 /* ---------- ¿Cómo voy? ---------- */
 VIEWS['como-voy'] = () => {
   if (!S.pasos.como) { S.pasos.como = true; save(); }
-  const [a, b, pa, pb, titulo, prevTxt] = rango(UI.period);
+  const [a, b] = perRango(); const [pa, pb, prevTxt] = perAnterior();
   const r = resumen(a, b), pr = resumen(pa, pb);
   const ch = pr.quedo ? Math.round((r.quedo - pr.quedo) / Math.abs(pr.quedo) * 100) : 0;
   const de100 = r.ventas ? Math.round(r.quedo / r.ventas * 100000 / 100) * 100 : 0;
@@ -1272,6 +1662,7 @@ VIEWS['como-voy'] = () => {
     <div class="days" role="img" aria-label="Ventas por día del periodo">${ds.map(x => `<div title="${fCorta(x.d)}: ${money(x.v)}"><i style="height:${(x.v - Math.max(0, x.q)) / mx * 100}%;background:#B9D8C8;border-radius:4px 4px 0 0"></i><i style="height:${Math.max(0, x.q) / mx * 100}%;background:var(--green);border-radius:0"></i></div>`).join('')}</div>
     <div class="row xs muted"><span>${fCorta(a)}</span><span>Día más alto: ${money(mx)}</span><span>${fCorta(b)}</span></div></div>`;
   }
+  chart = r.days > 1 ? `<div class="card">${graficoDias(a, b, true)}</div>` : '';
   // punto de equilibrio del mes
   const T = TODAY(); const ma = new Date(T.getFullYear(), T.getMonth(), 1); const rm = resumen(ma, T);
   const fijosMes = S.gastosFijos.reduce((s, g) => s + mensualEq(g), 0) + S.empleados.reduce((s, e) => s + (e.tipo === 'fijo' ? (e.frecuencia === 'quincenal' ? 2 : 1) * num(e.valorFijo) : e.tipo === 'mixto' ? num(e.base) : 0), 0);
@@ -1280,8 +1671,8 @@ VIEWS['como-voy'] = () => {
   const falta = Math.max(0, fijosMes - aporte);
   const pp = Math.min(100, pct(aporte, fijosMes));
   return `<h2 class="v-title">¿Cómo voy?</h2>
-  <div class="chips">${[['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes'], ['mespasado', 'Mes pasado']].map(([k, l]) => `<button type="button" class="chip ${UI.period === k ? 'on' : ''}" data-act="period" data-v="${k}">${l}</button>`).join('')}</div>
-  <div class="card hero" data-tour="heroComo"><div class="row" style="flex-wrap:wrap"><span class="lab">${titulo} te quedaron</span>${pr.ventas ? `<span class="badge" style="background:#D6EADF;color:#13201B">${ch >= 0 ? '+' : ''}${ch}% vs ${prevTxt}</span>` : ''}</div>
+  ${periodoBar()}
+  <div class="card hero" data-tour="heroComo"><div class="row" style="flex-wrap:wrap"><span class="lab">Te quedaron</span>${pr.ventas ? `<span class="badge" style="background:#D6EADF;color:#13201B">${ch >= 0 ? '+' : ''}${ch}% vs ${prevTxt}</span>` : ''}</div>
     <div class="big num">${money(r.quedo)}</div>
     <div style="margin-top:8px;font-size:16px;line-height:1.45;color:#E2F2EA">${r.ventas ? `De cada <b>$100.000</b> que vendiste, te ${r.quedo >= 0 ? 'quedaron' : 'faltaron'} <b>${money(Math.abs(de100))}</b>.` : 'Todavía no hay ventas en este periodo.'}</div></div>
   ${r.vs.some(v => v.sinReceta) ? `<div class="alert" style="border:2px solid #E9C46A"><div class="ic warn">${ic('alert')}</div><div class="tx"><b>${r.vs.filter(v => v.sinReceta).length} ventas con arreglos sin receta</b><span class="muted">No se restó lo que costaron sus flores, así que lo que te quedó se ve más alto de lo real.</span></div><a class="btn btn-l sm" href="#productos">Ir</a></div>` : ''}
@@ -1322,16 +1713,16 @@ VIEWS['mi-negocio'] = () => {
     <div class="chips" data-tour="pmodo"><button type="button" class="chip ${c.precioModo === 'cliente' ? 'on' : ''}" data-act="pmodo" data-v="cliente">Lo que pagó el cliente (recomendado)</button><button type="button" class="chip ${c.precioModo === 'neto' ? 'on' : ''}" data-act="pmodo" data-v="neto">Lo que me queda, ya sin comisión</button></div>
     <div style="background:var(--ink);color:#fff;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.5">${c.precioModo === 'cliente' ? `Ejemplo: anotas $120.000, que es lo que pagó el cliente, y la plataforma descuenta sola la comisión de ${money(120000 * c.comPct / 100)}.` : `Ejemplo: anotas ${money(120000 * (1 - c.comPct / 100))}, porque ya le quitaste la comisión, y la plataforma no descuenta nada más.`}</div>
   </div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px"><b>Clientes y fechas especiales</b>
+  ${on('clientes') ? `<div class="card" style="display:flex;flex-direction:column;gap:12px"><b>Clientes y fechas especiales</b>
     <div class="field" style="max-width:320px"><label for="cfa" class="row start" style="gap:8px">Avisarme con ${info('anticipacion')}</label><select class="inp" id="cfa" data-in="cfgNum" data-k="anticipacion">${[3, 5, 7, 10, 15].map(x => `<option value="${x}" ${c.anticipacion === x ? 'selected' : ''}>${x} días de anticipación</option>`).join('')}</select></div>
-    <div class="field"><label for="cfp">Mensaje base</label><textarea class="inp" id="cfp" data-in="cfg" data-k="plantilla">${esc(c.plantilla)}</textarea><span class="xs muted">Puedes usar {cliente}, {persona}, {ocasion}, {fecha}, {producto} y {negocio}.</span></div></div>
-  <div class="card" data-tour="mods" style="display:flex;flex-direction:column;gap:6px"><b>Módulos que usa tu negocio</b>
-    ${[['clientes', 'Clientes y fechas especiales'], ['equipo', 'Equipo y pagos']].map(([k, l]) => `<div class="row" style="min-height:48px"><span>${l}</span><button type="button" class="toggle ${c.mods[k] ? 'on' : ''}" data-act="mod" data-v="${k}" aria-pressed="${!!c.mods[k]}" aria-label="${l}"><i></i></button></div>`).join('')}
-    <div class="row" style="min-height:48px"><span class="muted">Controles preventivos (para podología)</span><span class="badge neu">No aplica</span></div></div>
+    <div class="field"><label for="cfp">Mensaje base</label><textarea class="inp" id="cfp" data-in="cfg" data-k="plantilla">${esc(c.plantilla)}</textarea><span class="xs muted">Puedes usar {cliente}, {persona}, {ocasion}, {fecha}, {producto} y {negocio}.</span></div></div>` : ''}
+  <div class="card row" data-tour="mods" style="flex-wrap:wrap"><span class="col" style="flex:1;min-width:200px;gap:2px"><b>Funcionalidades</b><span class="small muted">Prende solo lo que usa tu negocio: equipo, clientes, domicilios, abonos y más.</span></span><a class="btn btn-l sm" href="#funciones">${ic('grid', 18)}Ver funciones</a></div>
   <div class="card" style="display:flex;flex-direction:column;gap:6px"><b>Quién entra y qué ve</b>
     <div class="line"><span><b>${esc(c.duena)}</b> · dueña</span><span class="muted">Ve todo</span></div>
     ${S.empleados.filter(e => e.acceso !== 'ninguno').map(e => `<div class="line"><span><b>${esc(e.nombre)}</b> · ${esc(e.rol.toLowerCase())}</span><span class="muted">${e.acceso === 'secretaria' ? 'Registra, sin ver ganancias' : 'Solo lo suyo'}</span></div>`).join('')}
     <span class="small muted">En esta demo puedes probar cada usuario con «Ver como», arriba.</span></div>
+  ${historialHTML()}
+  ${respaldoHTML()}
   <div class="card" style="display:flex;flex-direction:column;gap:10px"><b>Empezar de nuevo</b><span class="small muted">Se borra todo lo que registraste en este navegador.</span>
     ${UI.resetAsk ? `<div class="small strong">${UI.resetAsk === 'zero' ? '¿Seguro? Se borran ventas, compras, gastos, clientes, equipo y recetas. Tus arreglos quedan como están en tu página web.' : '¿Seguro que quieres cargar la floristería de ejemplo? Reemplaza lo que tienes.'}</div><div class="row" style="gap:10px"><button type="button" class="btn btn-d" style="flex:1" data-act="resetOk">Sí, ${UI.resetAsk === 'zero' ? 'volver a empezar' : 'cargar ejemplo'}</button><button type="button" class="btn btn-l" style="flex:1" data-act="resetNo">Cancelar</button></div>`
       : `<div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" class="btn btn-l" style="flex:1" data-act="resetAsk" data-v="zero">${ic('refresh', 18)}Volver a empezar las pruebas</button></div>`}</div>`;
@@ -1353,9 +1744,9 @@ const MIS = [
       { sel: '#cfc', title: '¿Cuánta comisión pagas?', text: 'Elige el porcentaje que acordaste con Líderes Locales. Solo se cobra en las ventas que llegan por Google, y los extras como chocolates no pagan.' },
       { sel: '[data-tour=pmodo]', title: '¿Qué precio vas a anotar?', text: 'Te recomendamos anotar siempre lo que pagó el cliente, así la plataforma resta la comisión sola. Toca las dos opciones y mira cómo cambia el ejemplo.' },
       { sel: '#cfa', title: '¿Con cuántos días te avisamos?', text: 'Antes del cumpleaños o aniversario de alguien a quien un cliente le mandó flores, te avisamos para que le escribas. Elige con cuánta anticipación.' },
-      { sel: '[data-tour=mods]', title: 'Prende solo lo que usas', text: 'Si trabajas sin equipo o no quieres manejar clientes, apaga esa parte y la plataforma se vuelve más sencilla. Lo puedes cambiar cuando quieras.' }
+      { sel: '[data-tour=mods]', title: 'Prende solo lo que usas', text: 'En «Funcionalidades» apagas lo que no usas, por ejemplo el equipo, los domicilios o los abonos, y la plataforma se vuelve más sencilla. Lo puedes cambiar cuando quieras.' }
     ] },
-  { id: 'insumos', titulo: 'Revisa lo que te cuestan tus insumos', desc: 'Pusimos precios de referencia para cada flor y material. Cambia al menos uno por lo que tú pagas de verdad.', min: 3, route: 'compras', done: () => S.insumos.some(i => !i.estimado), skip: true, skipTxt: 'Omitir por ahora',
+  { id: 'insumos', mod: 'compras', titulo: 'Revisa lo que te cuestan tus insumos', desc: 'Pusimos precios de referencia para cada flor y material. Cambia al menos uno por lo que tú pagas de verdad.', min: 3, route: 'compras', done: () => S.insumos.some(i => !i.estimado), skip: true, skipTxt: 'Omitir por ahora',
     steps: [
       { sel: '[data-tour=insList]', title: 'Tus precios de compra', text: 'Esto es lo que te cuesta cada flor y material. Los que dicen «Estimado» los pusimos nosotros: toca uno y pon lo que tú pagas.', auto: hayVentana('inn'), onNext: () => { const i = S.insumos.find(x => x.estimado) || S.insumos[0]; if (i) ACT.insEdit(null, i.id); } },
       { sel: '#inp', title: '¿Cuánto te cuesta cada uno?', text: 'El precio de una sola unidad. Si compraste 100 rosas por $160.000, cada una te sale a $1.600.', back0: sinVentana('inn') },
@@ -1377,7 +1768,7 @@ const MIS = [
       { sel: '#pdp', title: 'Escribe el precio nuevo', text: 'El precio que le vas a cobrar al cliente desde hoy.', back0: sinVentana('pdp') },
       { sel: '[data-tour=pdSave]', title: 'Guárdalo', text: 'Al guardar, el cambio queda anotado para tu página web, así no tienes que avisarle a nadie.', back0: sinVentana('pdp') }
     ] },
-  { id: 'equipo', titulo: 'Agrega a tu equipo', desc: 'Quién trabaja contigo y cómo le pagas: fijo, por día, por arreglo o mixto.', min: 3, route: 'equipo', pre: () => { S.config.mods.equipo = true; }, done: () => S.empleados.length > 0, skip: true, skipTxt: 'Trabajo sin equipo', onSkip: () => { S.config.mods.equipo = false; },
+  { id: 'equipo', mod: 'equipo', titulo: 'Agrega a tu equipo', desc: 'Quién trabaja contigo y cómo le pagas: fijo, por día, por arreglo o mixto.', min: 3, route: 'equipo', pre: () => { S.config.mods.equipo = true; }, done: () => S.empleados.length > 0, skip: true, skipTxt: 'Trabajo sin equipo', onSkip: () => { S.config.mods.equipo = false; },
     steps: [
       { sel: '[data-tour=empNew]', title: 'Agrega a alguien', text: 'Toca «Agregar a alguien del equipo».', auto: hayVentana('edn'), onNext: () => ACT.empNew() },
       { sel: '#edn', title: '¿Cómo se llama?', text: 'Su nombre, y al lado qué hace, por ejemplo «Florista» o «Domiciliario».', back0: sinVentana('edn') },
@@ -1385,7 +1776,7 @@ const MIS = [
       { sel: '[data-tour=edAcceso]', title: '¿Entra a la plataforma?', text: 'Si quieres que registre ventas, dale acceso. Nunca va a ver la ganancia del negocio.', back0: sinVentana('edn') },
       { sel: '[data-tour=edSave]', title: 'Guárdalo', text: 'Toca «Guardar».', back0: sinVentana('edn') }
     ] },
-  { id: 'gastos', titulo: 'Pon tus gastos fijos', desc: 'Arriendo, servicios, contador: lo que pagas siempre, para ver tu ganancia real.', min: 3, route: 'gastos', done: () => S.gastosFijos.length > 0, skip: true, skipTxt: 'No tengo gastos fijos',
+  { id: 'gastos', mod: 'gastos', titulo: 'Pon tus gastos fijos', desc: 'Arriendo, servicios, contador: lo que pagas siempre, para ver tu ganancia real.', min: 3, route: 'gastos', done: () => S.gastosFijos.length > 0, skip: true, skipTxt: 'No tengo gastos fijos',
     steps: [
       { sel: '[data-tour=gfNew]', title: 'Agrega un gasto fijo', text: 'Empieza por el arriendo. Toca «Agregar gasto fijo».', auto: hayVentana('gfn'), onNext: () => ACT.gfNew() },
       { sel: '#gfn', title: '¿Qué es?', text: 'Por ejemplo «Arriendo del local».', back0: sinVentana('gfn') },
@@ -1405,20 +1796,20 @@ const MIS = [
       { sel: '[data-tour=pago]', title: '¿Cómo pagó?', text: 'Nequi, efectivo, transferencia o tarjeta.' },
       { sel: '#vfoot', title: 'Guarda la venta', text: 'Antes de guardar ya ves cuánto te queda. Toca «Guardar».' }
     ] },
-  { id: 'compra', titulo: 'Registra una compra de flores', desc: 'Y mira cómo se actualizan solos los precios de tus productos.', min: 2, route: 'compras', done: () => S.compras.length > 0, skip: true, skipTxt: 'Omitir por ahora',
+  { id: 'compra', mod: 'compras', titulo: 'Registra una compra de flores', desc: 'Y mira cómo se actualizan solos los precios de tus productos.', min: 2, route: 'compras', done: () => S.compras.length > 0, skip: true, skipTxt: 'Omitir por ahora',
     steps: [
       { sel: '#cIns', title: '¿Qué compraste?', text: 'Elige el insumo de la lista.' },
       { sel: '#cCant', title: '¿Cuántos?', text: 'Por ejemplo 100, si compraste 100 rosas.' },
       { sel: '#cTot', title: '¿Cuánto pagaste en total?', text: 'Lo que pagaste por todo junto. La plataforma calcula cuánto te salió cada uno.' },
       { sel: '#cCalc', title: 'Guarda la compra', text: 'Si el precio cambió, te pregunta si actualiza tus productos y te muestra cuáles quedaron con poca ganancia.' }
     ] },
-  { id: 'gasto', titulo: 'Registra un gasto del día', desc: 'La gasolina del domicilio, las bolsas o el transporte, con un toque.', min: 1, route: 'gastos', done: () => S.gastos.some(g => g.tipo === 'variable'), skip: true, skipTxt: 'Omitir por ahora',
+  { id: 'gasto', mod: 'gastos', titulo: 'Registra un gasto del día', desc: 'La gasolina del domicilio, las bolsas o el transporte, con un toque.', min: 1, route: 'gastos', done: () => S.gastos.some(g => g.tipo === 'variable'), skip: true, skipTxt: 'Omitir por ahora',
     steps: [
       { sel: '[data-tour=quick]', title: '¿Qué gastaste?', text: 'Toca el tipo de gasto, por ejemplo «Domicilio y gasolina».', auto: hayVentana('gm'), onNext: () => ACT.gastoNew(null, null, 'Domicilio y gasolina') },
       { sel: '#gm', title: '¿Cuánto fue?', text: 'Escribe el valor y, si quieres, una nota.', back0: sinVentana('gm') },
       { sel: '[data-tour=gastoSave]', title: 'Guárdalo', text: 'Toca «Guardar gasto».', back0: sinVentana('gm') }
     ] },
-  { id: 'clientes', titulo: 'Conoce tus clientes y fechas', desc: 'A quién toca escribirle, las temporadas y la ficha de cada cliente.', min: 2, route: 'clientes', manual: true, skip: true, skipTxt: 'No voy a usar esta parte', pre: () => { S.config.mods.clientes = true; }, onSkip: () => { S.config.mods.clientes = false; },
+  { id: 'clientes', mod: 'clientes', titulo: 'Conoce tus clientes y fechas', desc: 'A quién toca escribirle, las temporadas y la ficha de cada cliente.', min: 2, route: 'clientes', manual: true, skip: true, skipTxt: 'No voy a usar esta parte', pre: () => { S.config.mods.clientes = true; }, onSkip: () => { S.config.mods.clientes = false; },
     steps: [
       { sel: '[data-tour=escribir]', title: 'Hoy toca escribirles', text: 'Aquí aparecen los clientes con cumpleaños o aniversarios en los próximos días, con el mensaje listo para WhatsApp.' },
       { sel: '[data-tour=temporada]', title: 'Temporadas', text: 'Antes de Navidad, San Valentín o el Día de la Madre te mostramos quién te compró en esa fecha el año pasado.' },
@@ -1466,7 +1857,7 @@ function finalHTML() {
   <button type="button" class="btn btn-p block" data-act="closeGo" data-id="inicio">Ir al inicio</button>`;
 }
 function hudHTML(r) {
-  if (ROL() !== 'duena' || !S.guia || S.guia.oculta || TOUR || r === 'guia' || S.welcome) return '';
+  if (ROL() !== 'duena' || !on('guia') || r === 'inicio' || !S.guia || S.guia.oculta || TOUR || r === 'guia' || S.welcome) return '';
   const p = misPend(); if (!p.length) return '';
   const m = p[0], k = MIS.indexOf(m) + 1, prog = MIS.length - p.length;
   return `<div class="hud"><div class="col" style="flex:1;min-width:200px;gap:4px"><span class="xs strong" style="color:#8E2447;letter-spacing:.06em">MISIÓN ${k} DE ${MIS.length}</span><b style="font-size:16px">${esc(m.titulo)}</b><div class="bar"><i style="width:${pct(prog, MIS.length)}%;background:#F2C14E"></i></div></div>
@@ -1496,6 +1887,7 @@ function tourStart(id) {
   document.getElementById('celebraRoot').innerHTML = '';
   S.rol = 'duena';
   if (m.pre) m.pre();
+  if (m.mod && !on(m.mod)) { S.config.mods = S.config.mods || {}; S.config.mods[m.mod] = true; renderShell(); }
   save();
   closeSheet();
   TOUR = { mid: id, i: 0, sc: -1 };
@@ -1613,6 +2005,7 @@ function drawSheet() {
 function closeSheet() { sheetFn = null; sheetLock = false; PD = null; ED = null; CS = null; RET = null; drawSheet(); }
 let toastT;
 function toast(msg, undo) {
+  if (HIST[0] && !HIST[0].desc && Date.now() - HIST[0].t < 500 && !/^(Escribe|Elige|No se|No encontr|Copiad|Lo usan)/.test(msg)) { HIST[0].desc = msg; guardarHist(); }
   const r = document.getElementById('toastRoot');
   r.innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${undo ? '<button type="button" data-act="undo">Deshacer</button>' : ''}</div>`;
   window.__undo = undo || null; clearTimeout(toastT); toastT = setTimeout(() => { r.innerHTML = ''; window.__undo = null; }, 5000);
@@ -1705,7 +2098,7 @@ const ACT = {
   empPayOk: (el, id) => {
     const e = emp(id); const d = deuda(e); const m = num(document.getElementById('payAmt').value); if (!m) return toast('Escribe cuánto le pagaste');
     const txt = comprobante(e, m, d);
-    S.gastos.push({ id: uid(), fecha: isoDT(new Date()), tipo: 'equipo', categoria: 'Pago a ' + e.nombre, monto: m, nota: 'Pago a ' + e.nombre });
+    marca(`Le pagaste ${money(m)} a ${e.nombre}`); S.gastos.push({ id: uid(), fecha: isoDT(new Date()), tipo: 'equipo', categoria: 'Pago a ' + e.nombre, monto: m, nota: 'Pago a ' + e.nombre, empId: e.id });
     e.ultimoPago = isoDT(new Date()); save(); render();
     openSheet(() => `<div class="sheet-h"><h3>Pago registrado</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
       <p class="small muted" style="margin:0">Mándale este comprobante a ${esc(e.nombre)} por WhatsApp.</p><div class="msgbox" id="compTxt">${esc(txt)}</div>
@@ -1738,16 +2131,17 @@ const ACT = {
   temporada: () => openSheet(temporadaSheet),
   // cómo voy y configuración
   period: (el, id, v) => { UI.period = v; render(); },
-  pmodo: (el, id, v) => { S.config.precioModo = v; save(); render(); },
+  pmodo: (el, id, v) => { marca(v === 'cliente' ? 'Anotas lo que pagó el cliente' : 'Anotas lo que te queda sin comisión'); S.config.precioModo = v; save(); render(); },
   mod: (el, id, v) => { S.config.mods[v] = !S.config.mods[v]; save(); renderShell(); render(); },
   resetAsk: (el, id, v) => { UI.resetAsk = v; render(); },
   resetNo: () => { UI.resetAsk = false; render(); },
-  resetOk: () => { const z = UI.resetAsk === 'zero'; UI.resetAsk = false; S = z ? emptyState() : seed(); save(); D = null; UI.compraRes = null; TOUR = null; document.getElementById('celebraRoot').innerHTML = ''; go('inicio'); render(); if (!z) toast('Floristería de ejemplo cargada'); },
+  resetOk: () => { marca(UI.resetAsk === 'zero' ? 'Volviste a empezar las pruebas' : 'Cargaste la floristería de ejemplo'); const z = UI.resetAsk === 'zero'; UI.resetAsk = false; S = z ? emptyState() : seed(); save(); D = null; UI.compraRes = null; TOUR = null; document.getElementById('celebraRoot').innerHTML = ''; go('inicio'); render(); if (!z) toast('Floristería de ejemplo cargada'); },
   pcat: (el, id, v) => { UI.pcat = v; render(); },
   vcat: (el, id, v) => { UI.vcat = v; render(); },
   verCambios: () => openSheet(cambiosSheet),
   copyCambios: () => copyText((S.cambiosPrecio || []).map(c => `${c.code} ${c.nombre}: ${money(c.antes)} → ${money(c.ahora)}`).join('\n')),
-  ...GACT
+  ...GACT,
+  ...EXT_ACT
 };
 function copyText(t) {
   try { navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => toast('No se pudo copiar. Selecciona el texto y cópialo.')); }
@@ -1778,7 +2172,8 @@ const INP = {
   cs: el => { const c = cliente(CS.id); if (el.dataset.k === 'telefono') c.telefono = el.value.replace(/\D/g, ''); else c.nombre = el.value; save(); const b = document.getElementById('waBtn'); if (b) b.href = waLink(c.telefono, CS.msg); },
   csMsg: el => { CS.msg = el.value; const c = cliente(CS.id); const b = document.getElementById('waBtn'); if (b) b.href = waLink(c.telefono, CS.msg); },
   cfg: el => { S.config[el.dataset.k] = el.value; save(); if (el.dataset.k !== 'plantilla') renderShell(); },
-  cfgNum: el => { S.config[el.dataset.k] = Number(el.value); save(); render(); }
+  cfgNum: el => { S.config[el.dataset.k] = Number(el.value); save(); render(); },
+  ...EXT_INP
 };
 function updFoot() { const f = document.getElementById('vfoot'); if (f) f.innerHTML = footHTML(); }
 function updCompra() { const f = UI.compra; const i = insumo(f.iid); const cant = Number(String(f.cant).replace(',', '.')) || 0, tot = num(f.total); const unit = cant ? Math.round(tot / cant) : 0; const diff = i && unit ? pct(unit - i.precio, i.precio) : 0; const el = document.getElementById('cCalc'); if (el) el.innerHTML = compraCalcHTML(i, unit, diff); }
@@ -1789,12 +2184,12 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
   const f = ACT[el.dataset.act]; if (f) f(el, el.dataset.id, el.dataset.v, e);
 });
-document.addEventListener('input', e => { const el = e.target.closest('[data-in]'); if (!el) return; const f = INP[el.dataset.in]; if (f && el.dataset.in !== 'money' && el.dataset.in !== 'vPrecio' && el.dataset.in !== 'cTot' && el.dataset.in !== 'vparte' && el.dataset.in !== 'ed' && !(el.dataset.in === 'pd' && el.dataset.k !== 'nombre')) f(el, e); });
+document.addEventListener('input', e => { const el = e.target.closest('[data-in]'); if (!el) return; const f = INP[el.dataset.in]; if (f && !['money', 'vPrecio', 'cTot', 'vparte', 'ed', 'vdom', 'vabono'].includes(el.dataset.in) && !(el.dataset.in === 'pd' && el.dataset.k !== 'nombre')) f(el, e); });
 // Los campos de plata se formatean al salir del campo, para no mover el cursor mientras se escribe
-document.addEventListener('change', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (['money', 'vPrecio', 'cTot', 'vparte', 'ed'].includes(k) || (k === 'pd' && el.dataset.k !== 'nombre')) INP[k](el, e); });
-document.addEventListener('keyup', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (k === 'vPrecio') { D.items[el.dataset.id].precio = num(el.value); updFoot(); } if (k === 'vparte') { D.parte = num(el.value); updFoot(); } if (k === 'cTot') { UI.compra.total = num(el.value); updCompra(); } if (k === 'pd' && el.dataset.k !== 'nombre') { PD[el.dataset.k] = num(el.value); pdRefresh(); } if (k === 'ed') { ED[el.dataset.k] = num(el.value); } });
+document.addEventListener('change', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (['money', 'vPrecio', 'cTot', 'vparte', 'ed', 'vdom', 'vabono'].includes(k) || (k === 'pd' && el.dataset.k !== 'nombre')) INP[k](el, e); });
+document.addEventListener('keyup', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (k === 'vPrecio') { D.items[el.dataset.id].precio = num(el.value); updFoot(); } if (k === 'vparte') { D.parte = num(el.value); updFoot(); } if (k === 'vdom') { D.dom = num(el.value); updFoot(); } if (k === 'vabono') { D.abono = num(el.value); } if (k === 'cTot') { UI.compra.total = num(el.value); updCompra(); } if (k === 'pd' && el.dataset.k !== 'nombre') { PD[el.dataset.k] = num(el.value); pdRefresh(); } if (k === 'ed') { ED[el.dataset.k] = num(el.value); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (document.getElementById('popRoot').innerHTML) document.getElementById('popRoot').innerHTML = ''; else if (TOUR) tourEnd(); else if (sheetFn && !sheetLock) ACT.close(); } });
-window.addEventListener('hashchange', () => { if (TOUR) { const m = MIS.find(x => x.id === TOUR.mid); if (m && route() !== m.route) TOUR = null; } window.scrollTo(0, 0); renderShell(); render(); });
+window.addEventListener('hashchange', () => { if (D && D.editId && route() !== 'vender') D = null; if (TOUR) { const m = MIS.find(x => x.id === TOUR.mid); if (m && route() !== m.route) TOUR = null; } window.scrollTo(0, 0); renderShell(); render(); });
 let tRaf = 0; const tReq = () => { if (!TOUR) return; cancelAnimationFrame(tRaf); tRaf = requestAnimationFrame(drawTour); };
 window.addEventListener('resize', tReq); document.addEventListener('scroll', tReq, true); document.addEventListener('input', tReq);
 
@@ -1810,7 +2205,7 @@ function render() {
   drawTour();
 }
 
-load(); renderShell(); render();
+load(); cargarHist(); renderShell(); render();
 </script>
 </body>
 </html>

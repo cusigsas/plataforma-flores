@@ -1088,7 +1088,7 @@ function respaldoHTML() {
    ========================================================= */
 const SB_URL = 'https://tsvldyohzynylrqxydhg.supabase.co';
 const SB_KEY = 'sb_publishable_XljNXgBnFSaMGRECcUL5Qg_XA1zfeex';
-let sb = null, CANAL = null, CARGANDO = true, NEG_PUBLICO = null;
+let sb = null, CANAL = null, CARGANDO = true, NEG_PUBLICO = null, PANEL_ABIERTO = false;
 const SES = { user: null, negocio: null, rol: 'duena', admin: false, nombre: '', empleadoId: null, lista: [] };
 const ROLES_DB = { dueno: 'duena', secretaria: 'secretaria', empleado: 'florista' };
 const ROL_TXT = { dueno: 'Dueño', secretaria: 'Secretaria', empleado: 'Empleado' };
@@ -1097,6 +1097,8 @@ const subdominio = () => {
   const h = location.hostname; const m = h.match(/^([a-z0-9-]+)\.lidereslocales\.com$/i);
   return m ? m[1].toLowerCase() : 'flores';
 };
+const RESERVADOS = ['www', 'gestion', 'admin', 'datos', 'api', 'mail', 'app', 'panel', 'soporte'];
+const ES_PANEL = () => ['gestion', 'admin'].includes(subdominio());
 const limpiarUsuario = u => String(u || '').trim().replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
 const correoDe = (u, slug) => String(u).includes('@') ? String(u).trim().toLowerCase() : `${limpiarUsuario(u)}.${slug}@usuarios.lidereslocales.com`;
 const fechaDB = f => !f ? null : f.length === 10 ? f + 'T12:00:00' : f.length === 16 ? f + ':00' : f;
@@ -1314,6 +1316,14 @@ function pantalla(html) {
 }
 const cargandoHTML = (t = 'Cargando tu negocio…') => `<div class="login-card" style="align-items:center;text-align:center"><span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px">${ic('flower', 32)}</span><b style="font-size:19px">${esc(t)}</b><span class="small muted">Un momento, por favor.</span></div>`;
 function entrarHTML(msg) {
+  if (ES_PANEL()) return `<form class="login-card" id="fEntrar" autocomplete="on">
+    <span class="thumb t-mix" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('team', 32)}</span>
+    <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">Panel de Líderes Locales</h1><p class="muted" style="margin:6px 0 0;font-size:16px">Entra con tu correo de administrador</p></div>
+    <div class="field"><label for="lgU">Correo</label><input class="inp" id="lgU" name="username" type="email" autocomplete="username" autocapitalize="none" placeholder="tu@correo.com" style="font-size:18px"></div>
+    <div class="field"><label for="lgC">Clave</label><div class="row" style="gap:8px"><input class="inp" id="lgC" name="password" type="password" autocomplete="current-password" style="font-size:18px;flex:1"><button type="button" class="btn btn-l sm" data-act="verClave" aria-label="Ver la clave">Ver</button></div></div>
+    <div id="lgMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
+    <button type="submit" class="btn btn-p block" id="lgBtn" style="min-height:58px;font-size:18px">Entrar</button>
+  </form>`;
   const nom = NEG_PUBLICO ? NEG_PUBLICO.nombre : 'Mi Negocio en Orden';
   return `<form class="login-card" id="fEntrar" autocomplete="on">
     <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('flower', 32)}</span>
@@ -1331,7 +1341,7 @@ document.addEventListener('submit', async e => {
   const u = document.getElementById('lgU').value.trim(), c = document.getElementById('lgC').value;
   const msg = document.getElementById('lgMsg'), btn = document.getElementById('lgBtn');
   if (!u || !c) { msg.textContent = 'Escribe tu usuario y tu clave'; return; }
-  if (!u.includes('@') && !NEG_PUBLICO) { msg.textContent = 'Este negocio no existe. Revisa la dirección.'; return; }
+  if (!u.includes('@') && (!NEG_PUBLICO || ES_PANEL())) { msg.textContent = ES_PANEL() ? 'Escribe tu correo de administrador' : 'Este negocio no existe. Revisa la dirección.'; return; }
   btn.disabled = true; btn.textContent = 'Entrando…'; msg.textContent = '';
   const { data, error } = await sb.auth.signInWithPassword({ email: correoDe(u, NEG_PUBLICO && NEG_PUBLICO.slug), password: c });
   if (error) { btn.disabled = false; btn.textContent = 'Entrar'; msg.textContent = errTxt(error); return; }
@@ -1343,7 +1353,8 @@ async function arrancar() {
   if (!window.supabase) { pantalla(`<div class="login-card"><b>No se pudo abrir la plataforma</b><span class="small muted">Revisa tu conexión a internet y vuelve a abrir la página.</span><button type="button" class="btn btn-p block" onclick="location.reload()">Intentar de nuevo</button></div>`); return; }
   sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
   try { const r = await sb.rpc('negocio_por_subdominio', { p_subdominio: subdominio() }); NEG_PUBLICO = r.data || null; } catch (e) { NEG_PUBLICO = null; }
-  if (NEG_PUBLICO) document.title = NEG_PUBLICO.nombre;
+  if (ES_PANEL()) { NEG_PUBLICO = null; document.title = 'Panel de Líderes Locales'; }
+  else if (NEG_PUBLICO) document.title = NEG_PUBLICO.nombre;
   const { data } = await sb.auth.getSession();
   if (!data || !data.session) { pantalla(entrarHTML()); return; }
   await entrarCon(data.session.user);
@@ -1355,6 +1366,7 @@ async function entrarCon(user) {
   if (error) { pantalla(entrarHTML(errTxt(error))); return; }
   if (!lista || !lista.length) { await sb.auth.signOut(); pantalla(entrarHTML('Tu usuario no tiene un negocio asignado. Habla con Líderes Locales.')); return; }
   SES.lista = lista; SES.admin = !!lista[0].es_admin;
+  if (ES_PANEL() && !SES.admin) { await sb.auth.signOut(); pantalla(entrarHTML('Este panel es solo para Líderes Locales. Entra por la dirección de tu negocio.')); return; }
   let guardado = null; try { guardado = sessionStorage.getItem('mno-negocio'); } catch (e) { }
   const neg = lista.find(n => n.id === guardado) || lista.find(n => n.subdominio === subdominio()) || lista[0];
   await abrirNegocio(neg);
@@ -1373,6 +1385,7 @@ async function abrirNegocio(neg) {
   } catch (e) { CARGANDO = false; pantalla(`<div class="login-card"><b>No se pudieron traer tus datos</b><span class="small muted">${esc(errTxt(e))}</span><button type="button" class="btn btn-p block" onclick="location.reload()">Intentar de nuevo</button><button type="button" class="btn btn-l block" data-act="salir">Salir</button></div>`); return; }
   CARGANDO = false; D = null; UI.per = { k: 'hoy' };
   suscribir(); pantalla('');
+  if (ES_PANEL() && !PANEL_ABIERTO) { PANEL_ABIERTO = true; if (route() === 'inicio') location.hash = 'admin'; }
   if (!navFor().some(n => n.id === route())) location.hash = 'inicio';
   renderShell(); render(); estadoSync('ok');
 }
@@ -1446,11 +1459,11 @@ function usSheet() {
 
 /* ---------- Panel de Líderes Locales (administrador) ---------- */
 const NN = { nombre: '', sub: '', ciudad: '', wa: '', tipo: 'comision', pct: 20 };
-const slugDe = t => sinTilde(String(t || '')).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+const slugDe = t => sinTilde(String(t || '')).toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 40);
 VIEWS.admin = () => {
   if (!SES.admin) return '<div class="card empty">Esta parte es solo para Líderes Locales.</div>';
   return `<h2 class="v-title">Negocios</h2><p class="v-sub">Panel de Líderes Locales. Entra a un negocio para configurarlo, o crea uno nuevo.</p>
-  ${SES.lista.map(n => `<div class="card row" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:200px"><b style="font-size:16px">${esc(n.nombre)}</b><span class="small muted">${esc(n.subdominio || n.slug)}.lidereslocales.com</span></span>
+  ${SES.lista.map(n => `<div class="card row" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:200px"><b style="font-size:16px">${esc(n.nombre)}</b><a class="small" href="https://${esc(n.subdominio || n.slug)}.lidereslocales.com" target="_blank" rel="noopener">${esc(n.subdominio || n.slug)}.lidereslocales.com</a></span>
     ${SES.negocio && SES.negocio.id === n.id ? '<span class="badge ok">Estás aquí</span>' : `<button type="button" class="btn btn-p sm" data-act="negEntrar" data-id="${n.id}">Entrar</button>`}</div>`).join('')}
   <div class="sect">Crear un negocio</div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -1491,6 +1504,7 @@ const SB_ACT = {
   nnCrear: async () => {
     const nombre = NN.nombre.trim(), sub = slugDe(NN.sub || NN.nombre);
     if (!nombre || !sub) return toast('Escribe el nombre y el subdominio');
+    if (RESERVADOS.includes(sub)) return toast('Ese subdominio está reservado, usa otro');
     const b = document.getElementById('nnBtn'); if (b) b.disabled = true;
     const { data, error } = await sb.from('negocios').insert([{ slug: sub, subdominio: sub, nombre, ciudad: NN.ciudad || null, whatsapp: NN.wa.replace(/\D/g, '') || null, comision_pct: NN.tipo === 'comision' ? NN.pct : 0 }]).select().single();
     if (error) { if (b) b.disabled = false; return toast(/duplicate|unique/i.test(error.message) ? 'Ese subdominio ya existe, usa otro' : 'No se pudo crear: ' + errTxt(error)); }

@@ -132,6 +132,13 @@ textarea.inp{padding:12px 14px;min-height:120px;line-height:1.45;resize:vertical
 .stepper{display:flex;align-items:center;gap:4px}
 .stepper button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line2);background:#fff;display:flex;align-items:center;justify-content:center;padding:0}
 .stepper span{min-width:24px;text-align:center;font-weight:800}
+.vpasos{display:flex;gap:6px;margin-bottom:2px}
+.vpasos span{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:13px;font-weight:700;padding:9px 6px;border-radius:12px;background:var(--line);color:var(--muted)}
+.vpasos .on{background:var(--green);color:#fff}.vpasos .ok{background:var(--green-l);color:var(--green-d)}
+.vsec{background:#fff;border:1.5px solid var(--line2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.vsec.falta{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad-bg)}
+.vsec-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.vsec-h b{font-size:16.5px}
+.vmas{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:52px;padding:0 16px;border-radius:16px;border:1.5px dashed var(--line2);background:transparent;font:inherit;font-size:15.5px;font-weight:700;color:var(--green-d);cursor:pointer}
 .vfoot{position:sticky;bottom:78px;z-index:15;background:#fff;border:1.5px solid var(--line2);border-radius:20px;padding:12px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(19,32,27,.12)}
 @media (min-width:900px){.vfoot{bottom:16px}}
 .sugs{display:flex;flex-direction:column;gap:6px}
@@ -836,7 +843,7 @@ function avisosHoy() {
   const sr = S.productos.filter(p => sinReceta(p)).length;
   if (sr) out.push(al('warn', 'flower', `${sr} arreglo${sr > 1 ? 's' : ''} sin receta`, 'Ponle receta a los que más vendes para saber cuánto te deja cada uno', '#productos'));
   const est = S.productos.filter(p => p.estimada).length;
-  if (est) out.push(al('warn', 'flower', `${est} receta${est > 1 ? 's' : ''} por confirmar`, 'Las armamos mirando la foto. Revisa las de los arreglos que más vendes.', '#productos'));
+  if (est && on('guia')) out.push(al('warn', 'flower', `${est} receta${est > 1 ? 's' : ''} por confirmar`, 'Las armamos mirando la foto. Revisa las de los arreglos que más vendes.', '#productos'));
   return out;
 }
 function ventaRow(v, showQ) {
@@ -1775,6 +1782,10 @@ VIEWS.config = () => {
     <span><b>El dueño decide:</b> él la prende o la apaga cuando quiera.</span>
     <span><b>No incluida:</b> no le aparece en ninguna parte.</span></div>`;
   if (!PF) return top + `<div class="card empty">Cargando…</div>`;
+  const atajos = `<div class="card" style="display:flex;flex-direction:column;gap:10px;border:2px solid var(--green-l)">
+    <b style="font-size:16px">Atajos</b>
+    <span class="small muted">«Solo lo básico» deja vender y ver «¿Cómo voy?», sin pasos de inicio y sin datos obligatorios de más. Ideal para mostrarla o para empezar. El dueño puede prender lo demás cuando quiera.</span>
+    <div class="row start" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-p sm" data-act="pfPreset" data-v="basico">${ic('check', 18, 2.6)}Solo lo básico</button><button type="button" class="btn btn-l sm" data-act="pfPreset" data-v="todo">Prender todo</button></div></div>`;
   const grupos = FUNCS.map(g => ({ g: g.g, items: g.items.filter(it => it.k) })).filter(g => g.items.length)
     .map(g => `<div class="sect">${esc(g.g)}</div><div class="card" style="padding:4px 16px">${g.items.map(pfFila).join('')}</div>`).join('');
   const L = CAMPOS_TXT.filter(([k, , , fu]) => (!fu || pfOn(fu)) && PC[k]);
@@ -1785,7 +1796,7 @@ VIEWS.config = () => {
     ${L.map(([k, t, d]) => { const c = PC[k]; return `<div class="list-item" style="flex-wrap:wrap;gap:8px"><span class="col" style="flex:1;gap:2px;min-width:180px"><b style="font-size:15.5px">${esc(t)}</b><span class="small muted">${esc(d)}</span></span>
       <span class="row" style="gap:8px"><button type="button" class="chip xs-chip ${c.candado ? 'on' : ''}" data-act="pcCand" data-id="${k}" aria-pressed="${c.candado}">${ic('lock', 13, 2.4)}Candado</button><button type="button" class="toggle ${c.obligatorio ? 'on' : ''}" data-act="pcTog" data-id="${k}" aria-pressed="${c.obligatorio}" aria-label="${esc(t)}"><i></i></button></span></div>`; }).join('')}
   </div>`;
-  return top + grupos + campos + `<div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"><span class="small">Para ver cómo le quedó, o para crear usuarios y cambiar claves, entra como si fueras el dueño.</span>
+  return top + atajos + grupos + campos + `<div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"><span class="small">Para ver cómo le quedó, o para crear usuarios y cambiar claves, entra como si fueras el dueño.</span>
     <button type="button" class="btn btn-p block" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button></div>`;
 };
 async function pfGuardar(k, cambios) {
@@ -1793,7 +1804,22 @@ async function pfGuardar(k, cambios) {
   if (error) { toast('No se pudo cambiar: ' + errTxt(error)); await cargarConfigPanel(PNEG); render(); return false; }
   return true;
 }
+const PRESETS = {
+  basico: { apagar: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia'], prender: ['clientes', 'whatsapp'], obligatorios: [] },
+  todo: { apagar: [], prender: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'clientes', 'whatsapp'], obligatorios: ['cliente_nombre'] }
+};
 const PCFG_ACT = {
+  pfPreset: async (el, id, v) => {
+    const P = PRESETS[v]; if (!P) return;
+    if (el) el.disabled = true;
+    const tareas = [];
+    P.apagar.forEach(k => { const f = PF[k]; if (f && f.estado === 'no') return; tareas.push(sb.from('funciones').update({ estado: 'dueno', prendida: false }).eq('negocio_id', PNEG).eq('clave', k)); });
+    P.prender.forEach(k => tareas.push(sb.from('funciones').update({ estado: 'dueno', prendida: true }).eq('negocio_id', PNEG).eq('clave', k)));
+    Object.keys(PC || {}).filter(k => k !== 'origen').forEach(k => tareas.push(sb.from('campos').update({ obligatorio: P.obligatorios.includes(k) }).eq('negocio_id', PNEG).eq('clave', k)));
+    const res = await Promise.all(tareas); const err = res.find(r => r.error);
+    await cargarConfigPanel(PNEG); render();
+    toast(err ? 'Algo no se pudo cambiar: ' + errTxt(err.error) : v === 'basico' ? 'Listo: quedó solo lo básico' : 'Listo: todo prendido');
+  },
   cfgOpen: async (el, id) => { PNEG = id; PF = null; location.hash = 'config'; await cargarConfigPanel(id); render(); },
   cfgVolver: async () => { location.hash = 'negocios'; await cargarResumen(); render(); },
   pfEstado: async (el, id, v) => {
@@ -1885,45 +1911,53 @@ const EXT_INP = {
 /* ---------- Vender ---------- */
 let D;
 function newDraft() { const def = (S.empleados.find(e => e.tipo === 'producto' || e.tipo === 'mixto') || { id: 'duena' }).id; return { items: {}, clienteId: null, q: '', nuevo: { nombre: '', telefono: '' }, perSel: 'ninguna', per: { nombre: '', relacion: '', ocasion: 'Cumpleaños', fecha: '' }, empleadoId: ROL() === 'florista' ? S.rol : on('equipo') && !campo('empleado') ? def : on('equipo') ? null : 'duena', origen: on('comision') ? (campo('origen') ? null : 'google') : 'otro', parte: '', pago: campo('pago') ? '' : 'Nequi', fecha: iso(TODAY()), dom: campo('domicilio') && on('domicilios') ? null : 0, pagoTipo: campo('abono') && on('abonos') ? null : 'todo', abono: 0 }; }
+const V_TXT = { cliente: 'el cliente', persona: 'para quién es', empleado: 'quién lo hizo', origen: 'cómo llegó el cliente', domicilio: 'si cobraste domicilio', pago: 'cómo pagó' };
+function vFaltan() {
+  const cv = cliente(D.clienteId), f = [];
+  if (on('clientes') && ((campo('cliente_nombre') && !cv && !D.nuevo.nombre.trim()) || (campo('cliente_telefono') && !(cv && cv.telefono) && D.nuevo.telefono.replace(/\D/g, '').length < 7))) f.push('cliente');
+  if (on('clientes') && campo('persona') && (D.perSel === 'ninguna' || (D.perSel === 'nueva' && !D.per.nombre.trim()))) f.push('persona');
+  if (on('comision') && campo('origen') && !D.origen) f.push('origen');
+  if ((campo('pago') && !D.pago) || (on('abonos') && campo('abono') && !D.pagoTipo)) f.push('pago');
+  if (on('domicilios') && campo('domicilio') && D.dom == null) f.push('domicilio');
+  if (on('equipo') && campo('empleado') && !D.empleadoId) f.push('empleado');
+  return f;
+}
 VIEWS.vender = () => {
   if (!D) D = newDraft();
-  const arr = S.productos.filter(p => !p.anexo), ext = S.productos.filter(p => p.anexo);
+  if (D.editId) D.paso = 2; else if (!D.paso) D.paso = 1;
+  const ext = S.productos.filter(p => p.anexo);
   const lines = Object.entries(D.items).filter(([, x]) => x.cant > 0);
   const c = cliente(D.clienteId);
   const hacen = [...S.empleados.filter(e => e.tipo === 'producto' || e.tipo === 'mixto' || e.tipo === 'fijo'), { id: 'duena', nombre: `${S.config.duena || 'Yo'} (dueña)` }];
-  let nS = 0; const T0 = iso(TODAY()), AY = iso(addD(TODAY(), -1));
-  const req = k => campo(k) ? ' <span class="badge warn" style="text-transform:none;letter-spacing:0">Obligatorio</span>' : '';
+  const T0 = iso(TODAY()), AY = iso(addD(TODAY(), -1));
   const fk = D.fecha === T0 ? 'hoy' : D.fecha === AY ? 'ayer' : 'otro';
-  return `${D.editId ? `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Corregir venta</h2><button type="button" class="btn btn-l sm" data-act="vCancelEdit">${ic('x', 18)}No corregir</button></div><p class="v-sub">Cambia lo que necesites y toca «Guardar cambios».</p>` : `<h2 class="v-title">Nueva venta</h2><p class="v-sub">Toca, no tienes que escribir casi nada.</p>`}
-  <div class="sect">¿Cuándo fue?</div>
-  <div class="chips" data-tour="cuando">${[['hoy', 'Hoy'], ['ayer', 'Ayer'], ['otro', 'Otro día']].map(([k, l]) => `<button type="button" class="chip ${fk === k ? 'on' : ''}" data-act="vFecha" data-v="${k}">${l}</button>`).join('')}
-  ${fk === 'otro' ? `<input class="inp" type="date" id="vfecha" data-in="vfecha" max="${T0}" value="${D.fecha}" aria-label="Fecha de la venta" style="max-width:200px">` : ''}</div>
-  <div class="sect">${++nS} · ¿Qué vendiste?</div>
-  <div data-tour="ptiles" style="display:flex;flex-direction:column;gap:10px">
-    <input class="inp" id="vps" data-in="vps" value="${esc(UI.vps)}" placeholder="Busca por nombre o por código, ej: 14" autocomplete="off" aria-label="Buscar arreglo">
-    <div class="scrollx">${catChips(UI.vcat, 'vcat')}</div>
-    <div class="ptiles" id="vgrid">${vgridHTML()}</div>
-  </div>
-  <div class="sect">${++nS} · ¿Algo extra? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span></div>
-  <div class="chips" data-tour="extras">${ext.length ? '' : '<span class="small muted">Por ahora no tienes extras aparte. Si vendes chocolates o peluches sueltos, Líderes Locales te los agrega.</span>'}${ext.map(p => `<button type="button" class="chip ${D.items[p.id] && D.items[p.id].cant ? 'on' : ''}" data-act="vExtra" data-id="${p.id}">${esc(p.nombre)} · ${money(p.precio)}</button>`).join('')}</div>
-  ${lines.length ? `<div class="card" style="padding:6px 14px"><div class="small strong" style="margin:6px 0">Tu venta · puedes cambiar el precio</div>
-    ${lines.map(([pid, x]) => { const p = prod(pid); return `<div class="cartline"><span class="row start" style="gap:8px;min-width:0">${p.foto ? `<img src="${p.foto}" alt="" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex:none">` : ''}<span class="col" style="gap:0"><b style="font-size:14.5px">${esc(p.nombre)}</b><span class="xs muted">${p.code || ''}${p.anexo ? ' · Extra' : ''}</span></span></span>
-    <span class="stepper"><button type="button" data-act="vMinus" data-id="${pid}" aria-label="Quitar uno">${ic('minus', 18, 2.6)}</button><span>${x.cant}</span><button type="button" data-act="vAdd" data-id="${pid}" aria-label="Agregar uno">${ic('add', 18, 2.6)}</button></span>
-    <input class="inp num" id="vp-${pid}" data-in="vPrecio" data-id="${pid}" inputmode="numeric" value="${money(x.precio)}" aria-label="Precio de ${esc(p.nombre)}" style="min-height:44px;font-size:15px;padding:0 10px"></div>`; }).join('')}</div>` : ''}
+  const pasos = D.editId ? '' : `<div class="vpasos" aria-label="Pasos"><span class="${D.paso === 1 ? 'on' : 'ok'}">${D.paso > 1 ? ic('check', 15, 3) : '1 ·'} Qué vendiste</span><span class="${D.paso === 2 ? 'on' : ''}">2 · Datos y guardar</span></div>`;
 
-  ${on('clientes') ? `<div class="sect">${++nS} · Cliente${req('cliente_nombre') || req('cliente_telefono')}</div>
-  <div data-tour="cliente">${c ? `<div class="card row"><div class="row start" style="gap:12px"><span class="thumb t-mix" style="border-radius:50%;font-weight:800">${initials(c.nombre)}</span><div class="col" style="gap:0"><b>${esc(c.nombre)}</b><span class="small muted">${phoneFmt(c.telefono)} · ${S.ventas.filter(v => v.clienteId === c.id).length} compras</span></div></div><button type="button" class="btn btn-l sm" data-act="vCliClear">Cambiar</button></div>`
-    : `<div class="card" style="display:flex;flex-direction:column;gap:10px">
-      <div class="field"><label for="vq">Buscar por nombre o teléfono</label><input class="inp" id="vq" data-in="vq" value="${esc(D.q)}" placeholder="Ej: Carlos o 300 555" autocomplete="off"></div>
+  if (D.paso === 1) {
+    return `${pasos}<h2 class="v-title">¿Qué vendiste?</h2><p class="v-sub">Toca la foto del arreglo. Si vendiste dos, tócala dos veces.</p>
+    <div data-tour="ptiles" style="display:flex;flex-direction:column;gap:10px">
+      <input class="inp" id="vps" data-in="vps" value="${esc(UI.vps)}" placeholder="Busca por nombre o por código, ej: 14" autocomplete="off" aria-label="Buscar arreglo">
+      <div class="scrollx">${catChips(UI.vcat, 'vcat')}</div>
+      <div class="ptiles" id="vgrid">${vgridHTML()}</div>
+    </div>
+    ${ext.length ? `<div class="sect">¿Llevó algo extra? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span></div>
+    <div class="chips" data-tour="extras">${ext.map(p => `<button type="button" class="chip ${D.items[p.id] && D.items[p.id].cant ? 'on' : ''}" data-act="vExtra" data-id="${p.id}">${esc(p.nombre)} · ${money(p.precio)}</button>`).join('')}</div>` : ''}
+    <div class="vfoot" id="vfoot">${footHTML()}</div>`;
+  }
+
+  const falta = UI.vFalta ? vFaltan() : [];
+  const obl = k => k === 'cliente' ? (campo('cliente_nombre') || campo('cliente_telefono')) : k === 'pago' ? (campo('pago') || (on('abonos') && campo('abono'))) : campo(k);
+  const sec = (k, titulo, cuerpo, tour) => `<div class="vsec ${falta.includes(k) ? 'falta' : ''}" id="vs-${k}" ${tour ? `data-tour="${tour}"` : ''}>
+    <div class="vsec-h"><b>${titulo}</b>${obl(k) ? '<span class="badge warn" style="text-transform:none;letter-spacing:0">Obligatorio</span>' : ''}</div>
+    ${falta.includes(k) ? `<div class="small strong" style="color:var(--bad)">${ic('alert', 16, 2.4)} Falta este dato</div>` : ''}${cuerpo}</div>`;
+  const S2 = [];
+  if (on('clientes')) S2.push(['cliente', sec('cliente', '¿Quién compró?', c ? `<div class="row"><div class="row start" style="gap:12px"><span class="thumb t-mix" style="border-radius:50%;font-weight:800">${initials(c.nombre)}</span><div class="col" style="gap:0"><b>${esc(c.nombre)}</b><span class="small muted">${phoneFmt(c.telefono)} · ${S.ventas.filter(v => v.clienteId === c.id).length} compras</span></div></div><button type="button" class="btn btn-l sm" data-act="vCliClear">Cambiar</button></div>`
+    : `<div class="field"><label for="vq">Buscar un cliente que ya tienes</label><input class="inp" id="vq" data-in="vq" value="${esc(D.q)}" placeholder="Ej: Carlos o 300 555" autocomplete="off"></div>
       <div class="sugs" id="sugs">${sugsHTML()}</div>
-      <div class="small strong" style="margin-top:4px">¿Es un cliente nuevo?</div>
+      <div class="small strong">O si es nuevo:</div>
       <div class="fgrid"><div class="field"><label for="vnn">Nombre</label><input class="inp" id="vnn" data-in="vnn" value="${esc(D.nuevo.nombre)}" placeholder="Nombre y apellido"></div>
-      <div class="field"><label for="vnt">Celular</label><input class="inp" id="vnt" data-in="vnt" inputmode="tel" value="${esc(D.nuevo.telefono)}" placeholder="300 000 0000"></div></div>
-    </div>`}</div>` : ''}
-
-  ${on('clientes') ? `<div class="sect">${++nS} · ¿Para quién y qué ocasión?${req('persona')}</div>
-  <div class="card" data-tour="persona" style="display:flex;flex-direction:column;gap:10px">
-    <div class="chips">${c ? c.personas.map(p => `<button type="button" class="chip ${D.perSel === p.id ? 'on' : ''}" data-act="vPer" data-id="${p.id}">${esc(p.nombre)} · ${esc(p.relacion.toLowerCase())}</button>`).join('') : ''}
+      <div class="field"><label for="vnt">Celular</label><input class="inp" id="vnt" data-in="vnt" inputmode="tel" value="${esc(D.nuevo.telefono)}" placeholder="300 000 0000"></div></div>`, 'cliente')]);
+  if (on('clientes')) S2.push(['persona', sec('persona', '¿Para quién era y qué ocasión?', `<div class="chips">${c ? c.personas.map(p => `<button type="button" class="chip ${D.perSel === p.id ? 'on' : ''}" data-act="vPer" data-id="${p.id}">${esc(p.nombre)} · ${esc(p.relacion.toLowerCase())}</button>`).join('') : ''}
     <button type="button" class="chip ${D.perSel === 'nueva' ? 'on' : ''}" data-act="vPer" data-id="nueva">${c && c.personas.length ? 'Otra persona' : 'Agregar persona y fecha'}</button>
     <button type="button" class="chip ${D.perSel === 'ninguna' ? 'on' : ''}" data-act="vPer" data-id="ninguna">Sin fecha especial</button></div>
     ${D.perSel === 'nueva' ? `<div class="fgrid">
@@ -1932,23 +1966,31 @@ VIEWS.vender = () => {
       <div class="small strong">¿Qué es para el cliente?</div>
       <div class="chips">${['Esposa', 'Esposo', 'Mamá', 'Papá', 'Novia', 'Novio', 'Hija', 'Hijo', 'Amiga', 'Otro'].map(x => `<button type="button" class="chip ${D.per.relacion === x ? 'on' : ''}" data-act="vRel" data-v="${x}">${x}</button>`).join('')}</div>
       <div class="small strong">Ocasión</div>
-      <div class="chips">${['Cumpleaños', 'Aniversario', 'Grado'].map(x => `<button type="button" class="chip ${D.per.ocasion === x ? 'on' : ''}" data-act="vOca" data-v="${x}">${x}</button>`).join('')}</div>` : ''}
-  </div>` : ''}
+      <div class="chips">${['Cumpleaños', 'Aniversario', 'Grado'].map(x => `<button type="button" class="chip ${D.per.ocasion === x ? 'on' : ''}" data-act="vOca" data-v="${x}">${x}</button>`).join('')}</div>` : ''}`, 'persona')]);
+  if (on('comision')) S2.push(['origen', sec('origen', '¿Cómo llegó el cliente?', `<div class="chips">${[['google', 'Por Google'], ['otro', 'Por otro lado'], ['parte', 'Solo una parte por Google']].map(([k, l]) => `<button type="button" class="chip ${D.origen === k ? 'on' : ''}" data-act="vOri" data-v="${k}">${l}</button>`).join('')}</div>
+    ${D.origen === 'parte' ? `<div class="field" style="max-width:320px"><label for="vparte">¿Cuánto de esta venta llegó por Google?</label><input class="inp num" id="vparte" data-in="vparte" inputmode="numeric" value="${D.parte ? money(num(D.parte)) : ''}" placeholder="$0"></div>` : ''}`, 'origen')]);
+  S2.push(['pago', sec('pago', '¿Cómo pagó?', `<div class="chips">${['Nequi', 'Efectivo', 'Transferencia', 'Tarjeta'].map(k => `<button type="button" class="chip ${D.pago === k ? 'on' : ''}" data-act="vPago" data-v="${k}">${k}</button>`).join('')}</div>
+    ${on('abonos') ? `<div class="chips">${[['todo', 'Pagó todo'], ['abono', 'Dejó un abono']].map(([k, l]) => `<button type="button" class="chip ${D.pagoTipo === k ? 'on' : ''}" data-act="vPagoTipo" data-v="${k}">${l}</button>`).join('')}</div>
+    ${D.pagoTipo === 'abono' ? `<div class="field" style="max-width:320px"><label for="vabono">¿Cuánto abonó?</label><input class="inp num" id="vabono" data-in="vabono" inputmode="numeric" value="${D.abono ? money(D.abono) : ''}" placeholder="$0"><span class="xs muted">Te recordamos cobrar el resto en el inicio y en Ventas.</span></div>` : ''}` : ''}`, 'pago')]);
+  if (on('domicilios')) S2.push(['domicilio', sec('domicilio', '¿Cobraste domicilio?', `<div class="row start" style="gap:8px;flex-wrap:wrap"><input class="inp num" id="vdom" data-in="vdom" inputmode="numeric" value="${D.dom ? money(D.dom) : ''}" placeholder="$0 si no cobraste" aria-label="Valor del domicilio" style="max-width:220px">${campo('domicilio') ? `<button type="button" class="chip ${D.dom === 0 ? 'on' : ''}" data-act="vSinDom">No cobré domicilio</button>` : ''}${info('domicilio')}</div><span class="xs muted">El domicilio no paga comisión.</span>`)]);
+  if (on('equipo') && hacen.length > 1) S2.push(['empleado', sec('empleado', '¿Quién lo hizo?', `<div class="chips">${hacen.map(e => `<button type="button" class="chip ${D.empleadoId === e.id ? 'on' : ''}" data-act="vEmp" data-id="${e.id}" ${ROL() === 'florista' && e.id !== S.rol ? 'disabled' : ''}>${esc(e.nombre)}</button>`).join('')}</div>`, 'quien')]);
+  const req = S2.filter(([k]) => obl(k)), opc = S2.filter(([k]) => !obl(k));
+  const abierto = D.opc || D.editId || (typeof TOUR !== 'undefined' && TOUR && TOUR.mid === 'venta') || opc.some(([k]) => falta.includes(k));
 
-  ${on('equipo') && hacen.length > 1 ? `<div class="sect">${++nS} · ¿Quién lo hizo?${req('empleado')}</div>
-  <div class="chips" data-tour="quien">${hacen.map(e => `<button type="button" class="chip ${D.empleadoId === e.id ? 'on' : ''}" data-act="vEmp" data-id="${e.id}" ${ROL() === 'florista' && e.id !== S.rol ? 'disabled' : ''}>${esc(e.nombre)}</button>`).join('')}</div>` : ''}
-
-  ${on('comision') ? `<div class="sect">${++nS} · ¿Cómo llegó el cliente?${req('origen')}</div>
-  <div class="chips" data-tour="origen">${[['google', 'Por Google'], ['otro', 'Por otro lado'], ['parte', 'Solo una parte por Google']].map(([k, l]) => `<button type="button" class="chip ${D.origen === k ? 'on' : ''}" data-act="vOri" data-v="${k}">${l}</button>`).join('')}</div>
-  ${D.origen === 'parte' ? `<div class="field" style="max-width:320px"><label for="vparte">¿Cuánto de esta venta llegó por Google?</label><input class="inp num" id="vparte" data-in="vparte" inputmode="numeric" value="${D.parte ? money(num(D.parte)) : ''}" placeholder="$0"></div>` : ''}` : ''}
-
-  ${on('domicilios') ? `<div class="sect">${++nS} · ¿Cobraste domicilio? <span style="text-transform:none;letter-spacing:0;font-weight:600">(no paga comisión)</span>${req('domicilio')}</div>
-  <div class="row start" style="gap:8px;flex-wrap:wrap"><input class="inp num" id="vdom" data-in="vdom" inputmode="numeric" value="${D.dom ? money(D.dom) : ''}" placeholder="$0 si no cobraste" aria-label="Valor del domicilio" style="max-width:220px">${campo('domicilio') ? `<button type="button" class="chip ${D.dom === 0 ? 'on' : ''}" data-act="vSinDom">No cobré domicilio</button>` : ''}${info('domicilio')}</div>` : ''}
-
-  <div class="sect">${++nS} · ¿Cómo pagó?${req('pago') || req('abono')}</div>
-  <div class="chips" data-tour="pago">${['Nequi', 'Efectivo', 'Transferencia', 'Tarjeta'].map(k => `<button type="button" class="chip ${D.pago === k ? 'on' : ''}" data-act="vPago" data-v="${k}">${k}</button>`).join('')}</div>
-  ${on('abonos') ? `<div class="chips">${[['todo', 'Pagó todo'], ['abono', 'Dejó un abono']].map(([k, l]) => `<button type="button" class="chip ${D.pagoTipo === k ? 'on' : ''}" data-act="vPagoTipo" data-v="${k}">${l}</button>`).join('')}</div>
-  ${D.pagoTipo === 'abono' ? `<div class="field" style="max-width:320px"><label for="vabono">¿Cuánto abonó?</label><input class="inp num" id="vabono" data-in="vabono" inputmode="numeric" value="${D.abono ? money(D.abono) : ''}" placeholder="$0"><span class="xs muted">Te recordamos cobrar el resto en el inicio y en Ventas.</span></div>` : ''}` : ''}
+  return `${pasos}${D.editId ? `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Corregir venta</h2><button type="button" class="btn btn-l sm" data-act="vCancelEdit">${ic('x', 18)}No corregir</button></div><p class="v-sub">Cambia lo que necesites y toca «Guardar cambios».</p>`
+    : `<h2 class="v-title">Datos de la venta</h2><p class="v-sub">${req.length ? `Llena lo que dice <b>Obligatorio</b> y toca «Guardar».` : 'Ya puedes guardar. Lo demás es opcional.'}</p>`}
+  <div class="vsec">
+    <div class="vsec-h"><b>Lo que vendiste</b><button type="button" class="btn btn-l xs" data-act="vPaso" data-v="1">${ic('add', 16, 2.4)}Agregar otro</button></div>
+    ${lines.map(([pid, x]) => { const p = prod(pid); return `<div style="display:flex;flex-direction:column;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)"><span class="row start" style="gap:10px;min-width:0">${p.foto ? `<img src="${p.foto}" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;flex:none">` : ''}<span class="col" style="gap:0;min-width:0"><b style="font-size:15.5px">${esc(p.nombre)}</b><span class="xs muted">${p.code || ''}${p.anexo ? ' · Extra' : ''}</span></span></span>
+    <span class="row start" style="gap:10px"><span class="stepper"><button type="button" data-act="vMinus" data-id="${pid}" aria-label="Quitar uno">${ic('minus', 18, 2.6)}</button><span>${x.cant}</span><button type="button" data-act="vAdd" data-id="${pid}" aria-label="Agregar uno">${ic('add', 18, 2.6)}</button></span>
+    <input class="inp num" id="vp-${pid}" data-in="vPrecio" data-id="${pid}" inputmode="numeric" value="${money(x.precio)}" aria-label="Precio de ${esc(p.nombre)}" style="min-height:46px;font-size:16px;padding:0 12px;flex:1;min-width:0"></span></div>`; }).join('') || '<span class="small muted">No hay productos. Toca «Agregar otro».</span>'}
+    <span class="xs muted">Si cobraste otro precio, cámbialo aquí.</span>
+    <div class="row start" style="gap:8px;flex-wrap:wrap" data-tour="cuando"><span class="small strong">¿Cuándo fue?</span>${[['hoy', 'Hoy'], ['ayer', 'Ayer'], ['otro', 'Otro día']].map(([k, l]) => `<button type="button" class="chip ${fk === k ? 'on' : ''}" data-act="vFecha" data-v="${k}">${l}</button>`).join('')}
+    ${fk === 'otro' ? `<input class="inp" type="date" id="vfecha" data-in="vfecha" max="${T0}" value="${D.fecha}" aria-label="Fecha de la venta" style="max-width:200px">` : ''}</div>
+  </div>
+  ${req.map(([, h]) => h).join('')}
+  ${opc.length ? `<button type="button" class="vmas" data-act="vOpc" aria-expanded="${abierto ? 'true' : 'false'}"><span>${abierto ? 'Ocultar los datos opcionales' : 'Agregar más datos (opcional)'}</span>${ic(abierto ? 'chevL' : 'chevR', 18, 2.4)}</button>
+  ${abierto ? opc.map(([, h]) => h).join('') : `<p class="xs muted" style="margin:-4px 4px 0">${opc.map(([k]) => V_TXT[k]).join(', ').replace(/^./, m => m.toUpperCase())}.</p>`}` : ''}
   <div class="vfoot" id="vfoot">${footHTML()}</div>`;
 };
 function sugsHTML() {
@@ -1960,6 +2002,11 @@ function sugsHTML() {
 }
 function footHTML() {
   const k = calcVenta(D);
+  if (!D.editId && D.paso === 1) {
+    const n = k.its.reduce((t, x) => t + (x.cant || 0), 0);
+    if (!n) return `<span class="small muted" style="flex:1">Toca un arreglo para empezar</span><button type="button" class="btn btn-p" disabled>Siguiente</button>`;
+    return `<div class="col" style="flex:1;gap:0"><span class="small muted">${n} producto${n === 1 ? '' : 's'}</span><b class="num" style="font-size:20px">${money(k.total)}</b></div><button type="button" class="btn btn-p" data-act="vPaso" data-v="2" data-tour="vnext">Siguiente${ic('chevR', 20, 2.6)}</button>`;
+  }
   if (!k.its.length) return `<span class="small muted" style="flex:1">Toca un producto para empezar</span><button type="button" class="btn btn-p" disabled>Guardar venta</button>`;
   if (ROL() !== 'duena') return `<div class="col" style="flex:1;gap:0"><span class="small muted">Total</span><b class="num" style="font-size:20px">${money(k.total)}</b></div><button type="button" class="btn btn-p" data-act="vSave">${ic('check', 20, 2.6)}${D.editId ? 'Guardar cambios' : 'Guardar venta'}</button>`;
   const sr = k.its.some(x => sinReceta(prod(x.pid)));
@@ -1969,16 +2016,13 @@ function footHTML() {
 function saveVenta() {
   const k = calcVenta(D);
   if (!k.its.length) return toast('Elige al menos un producto');
-  const cv = cliente(D.clienteId), falta = [];
-  if (on('comision') && campo('origen') && !D.origen) falta.push('cómo llegó el cliente');
-  if (on('clientes') && campo('cliente_nombre') && !cv && !D.nuevo.nombre.trim()) falta.push('el nombre del cliente');
-  if (on('clientes') && campo('cliente_telefono') && !(cv && cv.telefono) && D.nuevo.telefono.replace(/\D/g, '').length < 7) falta.push('el celular del cliente');
-  if (on('clientes') && campo('persona') && (D.perSel === 'ninguna' || (D.perSel === 'nueva' && !D.per.nombre.trim()))) falta.push('para quién es');
-  if (on('equipo') && campo('empleado') && !D.empleadoId) falta.push('quién lo hizo');
-  if (campo('pago') && !D.pago) falta.push('cómo pagó');
-  if (on('domicilios') && campo('domicilio') && D.dom == null) falta.push('si cobraste domicilio');
-  if (on('abonos') && campo('abono') && !D.pagoTipo) falta.push('si pagó todo o dejó un abono');
-  if (falta.length) return toast('Falta ' + falta.join(', '));
+  const fl = vFaltan();
+  if (fl.length) {
+    UI.vFalta = fl; D.paso = 2; render();
+    const el = document.querySelector('.vsec.falta'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return toast('Te falta: ' + fl.map(k => V_TXT[k]).join(', '));
+  }
+  UI.vFalta = null; const tr = document.getElementById('toastRoot'); if (tr) tr.innerHTML = '';
   let c = cliente(D.clienteId), nuevoCli = false;
   if (!c && D.nuevo.nombre.trim()) {
     c = { id: 'c' + uid(), nombre: D.nuevo.nombre.trim(), telefono: D.nuevo.telefono.replace(/\D/g, ''), autoriza: true, personas: [], contactos: [], desde: iso(TODAY()) };
@@ -2539,11 +2583,12 @@ const MIS = [
     steps: [
       { sel: '[data-tour=ptiles]', title: '¿Qué vendiste?', text: 'Busca el arreglo por nombre o por el número de su código, o filtra por tipo, y toca su foto. Si fueron dos, tócala dos veces.', auto: () => !!(D && Object.keys(D.items).some(k => prod(k) && !prod(k).anexo)) },
       { sel: '[data-tour=extras]', title: '¿Llevó algo extra?', text: 'Si llevó chocolates o un peluche, tócalo. Si no, sigue.', optional: true },
-      { sel: '[data-tour=cliente]', title: '¿Quién compró?', text: 'Búscalo, o si es nuevo escribe su nombre y celular. Queda guardado en tus clientes sin hacer nada más.' },
+      { sel: '[data-tour=vnext]', title: 'Toca «Siguiente»', text: 'Cuando tengas todo lo que vendiste, toca «Siguiente» para poner los datos.', auto: () => !!(D && D.paso === 2) },
+      { sel: '[data-tour=cliente]', title: '¿Quién compró?', text: 'Búscalo, o si es nuevo escribe su nombre y celular. Queda guardado en tus clientes sin hacer nada más.', optional: true },
       { sel: '[data-tour=persona]', title: '¿Para quién es?', text: 'Si es para un cumpleaños o aniversario, anota la persona y la fecha. El próximo año te avisamos para que le escribas.', optional: true },
-      { sel: '[data-tour=quien]', title: '¿Quién lo hizo?', text: 'Si esa persona cobra por arreglo, se le suma solo a lo que le debes.' },
-      { sel: '[data-tour=origen]', title: '¿Cómo llegó el cliente?', text: 'Si llegó por Google se calcula la comisión. Si llegó por otro lado, no paga nada.' },
-      { sel: '[data-tour=pago]', title: '¿Cómo pagó?', text: 'Nequi, efectivo, transferencia o tarjeta.' },
+      { sel: '[data-tour=quien]', title: '¿Quién lo hizo?', text: 'Si esa persona cobra por arreglo, se le suma solo a lo que le debes.', optional: true },
+      { sel: '[data-tour=origen]', title: '¿Cómo llegó el cliente?', text: 'Si llegó por Google se calcula la comisión. Si llegó por otro lado, no paga nada.', optional: true },
+      { sel: '[data-tour=pago]', title: '¿Cómo pagó?', text: 'Nequi, efectivo, transferencia o tarjeta.', optional: true },
       { sel: '#vfoot', title: 'Guarda la venta', text: 'Antes de guardar ya ves cuánto te queda. Toca «Guardar».' }
     ] },
   { id: 'compra', mod: 'compras', titulo: 'Registra una compra de flores', desc: 'Y mira cómo se actualizan solos los precios de tus productos.', min: 2, route: 'compras', done: () => S.compras.length > 0, skip: true, skipTxt: 'Omitir por ahora',
@@ -2796,6 +2841,8 @@ const ACT = {
   vOri: (el, id, v) => { D.origen = v; render(); },
   vPago: (el, id, v) => { D.pago = v; render(); },
   vSave: () => saveVenta(),
+  vPaso: (el, id, v) => { const n = Number(v); if (n === 2 && !Object.values(D.items).some(x => x.cant > 0)) return toast('Toca un arreglo primero'); D.paso = n; if (n === 1) UI.vFalta = null; render(); window.scrollTo(0, 0); },
+  vOpc: () => { D.opc = !D.opc; render(); },
   delVenta: (el, id) => { const i = S.ventas.findIndex(v => v.id === id); if (i < 0) return; const [v] = S.ventas.splice(i, 1); save(); render(); toast('Venta borrada', () => { S.ventas.splice(i, 0, v); save(); render(); }); },
   vper: (el, id, v) => { UI.vper = v; render(); },
   // productos

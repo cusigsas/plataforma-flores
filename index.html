@@ -759,7 +759,7 @@ function renderShell() {
   bn.innerHTML = cells.join('');
   document.getElementById('top').innerHTML = `
     <div class="brand"><b>${esc(S.config.negocio || 'Mi negocio')}</b><span>${esc(SES.nombre || '')}${SES.admin ? ' · Soporte' : ''} · ${fLarga(TODAY())}</span></div>
-    <button type="button" class="topbtn" data-act="buscar" aria-label="Buscar lo que necesitas">${ic('search', 19, 2.4)}Buscar</button>
+    ${on('buscador') ? `<button type="button" class="topbtn" data-act="buscar" aria-label="Buscar lo que necesitas">${ic('search', 19, 2.4)}Buscar</button>` : ''}
     <button type="button" class="demo-tag sync-ok" id="syncPill" style="border:none">✓ Guardado</button>
     ${roleOpts().length > 1 ? `<label class="role" for="rolSel">Ver como
       <select id="rolSel" data-in="rol">${roleOpts().map(([k, v]) => `<option value="${k}" ${(S.rol || 'duena') === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
@@ -803,8 +803,9 @@ VIEWS.inicio = () => {
     on('abonos') ? kpi('Por cobrar', money(debeTot), debe.length ? `${debe.length} venta${debe.length > 1 ? 's' : ''} con saldo` : 'Nadie te debe', 'porCobrar') : ''
   ].filter(Boolean);
   return `<h2 class="v-title">Hola${own ? (S.config.duena ? ', ' + esc(S.config.duena) : '') : ', ' + esc(ME().nombre)}</h2>
-  <button type="button" class="bigsearch" data-act="buscar">${ic('search', 20, 2.4)}¿Qué necesitas hacer? Escríbelo aquí</button>
+  ${on('buscador') ? `<button type="button" class="bigsearch" data-act="buscar">${ic('search', 20, 2.4)}¿Qué necesitas hacer? Escríbelo aquí</button>` : ''}
   ${paraEmpezarHTML()}
+  <a class="btn btn-p block" href="#vender" style="min-height:64px;font-size:18px">${ic('add', 24, 2.4)}Registrar venta</a>
   ${periodoBar()}
   <div class="card hero">
     <div class="row" style="flex-wrap:wrap"><span class="lab">${hoyEs ? 'Hoy vendiste' : 'Vendiste'}</span><span class="row start" style="gap:6px"><span class="badge" style="background:#D6EADF;color:#13201B">${vs.length} venta${vs.length === 1 ? '' : 's'}</span>${cambio(tot, ptot)}</span></div>
@@ -814,12 +815,9 @@ VIEWS.inicio = () => {
     <div class="row" style="flex-wrap:wrap"><span class="row start" style="gap:8px;font-weight:700">Te quedaron ${info('quedaron')}</span><span class="row start" style="gap:8px">${cambio(q, pq)}<span class="num" style="font-size:26px;font-weight:800">${money(q)}</span></span></div>` : ''}
   </div>
   ${kpis.length ? `<div class="kpis">${kpis.join('')}</div>` : ''}
-  <div class="grid2" style="gap:10px">
-    <a class="btn btn-p" href="#vender" style="min-height:64px;font-size:18px">${ic('add', 24, 2.4)}Registrar venta</a>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px">
-      ${on('gastos') ? `<a class="btn btn-l" href="#gastos" style="flex:1;min-height:64px">${ic('wallet')}Gasto${on('compras') ? ' o compra' : ''}</a>` : ''}
-      ${own ? `<a class="btn btn-l" href="#como-voy" style="flex:1;min-height:64px">${ic('chart')}¿Cómo voy?</a>` : on('clientes') ? `<a class="btn btn-l" href="#clientes" style="flex:1;min-height:64px">${ic('users')}Clientes</a>` : ''}
-    </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px">
+    ${on('gastos') ? `<a class="btn btn-l" href="#gastos" style="flex:1;min-height:56px">${ic('wallet')}Gasto${on('compras') ? ' o compra' : ''}</a>` : ''}
+    ${own ? `<a class="btn btn-l" href="#como-voy" style="flex:1;min-height:56px">${ic('chart')}¿Cómo voy?</a>` : on('clientes') ? `<a class="btn btn-l" href="#clientes" style="flex:1;min-height:56px">${ic('users')}Clientes</a>` : ''}
   </div>
   ${dBetween(a, b) > 0 ? `<div class="card">${graficoDias(a, b, own)}</div>` : ''}
   ${own ? `<div class="sect">Para atender hoy</div>${avisos.length ? avisos.join('') : '<div class="card empty">Todo al día. No hay nada pendiente.</div>'}` : ''}
@@ -890,6 +888,7 @@ const FUNCS = [
     { k: 'clientes', t: 'Clientes y fechas especiales', d: 'Guarda a tus clientes y te avisa a quién escribirle por su fecha especial.' }
   ] },
   { g: 'Ayuda', items: [
+    { k: 'buscador', t: 'Buscador «¿Qué necesitas?»', d: 'La barra del inicio y el botón «Buscar» de arriba, para escribir lo que quieres hacer y que te lleve ahí.' },
     { k: 'guia', t: 'Pasos para empezar', d: 'La tarjeta «Para empezar» del inicio con las misiones paso a paso.' },
     { k: 'whatsapp', t: 'Ventas por WhatsApp', d: 'Registrar ventas mandando un audio o un mensaje por WhatsApp.' }
   ] }
@@ -1784,7 +1783,7 @@ VIEWS.config = () => {
   if (!PF) return top + `<div class="card empty">Cargando…</div>`;
   const atajos = `<div class="card" style="display:flex;flex-direction:column;gap:10px;border:2px solid var(--green-l)">
     <b style="font-size:16px">Atajos</b>
-    <span class="small muted">«Solo lo básico» deja vender y ver «¿Cómo voy?», sin pasos de inicio y sin datos obligatorios de más. Ideal para mostrarla o para empezar. El dueño puede prender lo demás cuando quiera.</span>
+    <span class="small muted">«Solo lo básico» deja vender y ver «¿Cómo voy?», sin buscador, sin pasos de inicio y sin datos obligatorios de más. Ideal para mostrarla o para empezar. El dueño puede prender lo demás cuando quiera.</span>
     <div class="row start" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-p sm" data-act="pfPreset" data-v="basico">${ic('check', 18, 2.6)}Solo lo básico</button><button type="button" class="btn btn-l sm" data-act="pfPreset" data-v="todo">Prender todo</button></div></div>`;
   const grupos = FUNCS.map(g => ({ g: g.g, items: g.items.filter(it => it.k) })).filter(g => g.items.length)
     .map(g => `<div class="sect">${esc(g.g)}</div><div class="card" style="padding:4px 16px">${g.items.map(pfFila).join('')}</div>`).join('');
@@ -1805,8 +1804,8 @@ async function pfGuardar(k, cambios) {
   return true;
 }
 const PRESETS = {
-  basico: { apagar: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia'], prender: ['clientes', 'whatsapp'], obligatorios: [] },
-  todo: { apagar: [], prender: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'clientes', 'whatsapp'], obligatorios: ['cliente_nombre'] }
+  basico: { apagar: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'buscador'], prender: ['clientes', 'whatsapp'], obligatorios: [] },
+  todo: { apagar: [], prender: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'buscador', 'clientes', 'whatsapp'], obligatorios: ['cliente_nombre'] }
 };
 const PCFG_ACT = {
   pfPreset: async (el, id, v) => {

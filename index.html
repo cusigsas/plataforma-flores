@@ -751,7 +751,7 @@ function renderShell() {
   bn.style.gridTemplateColumns = `repeat(${cells.length},minmax(0,1fr))`;
   bn.innerHTML = cells.join('');
   document.getElementById('top').innerHTML = `
-    <div class="brand"><b>${esc(S.config.negocio || 'Mi negocio')}</b><span>${esc(SES.nombre || '')}${SES.admin ? ' · Administrador' : ''} · ${fLarga(TODAY())}</span></div>
+    <div class="brand"><b>${esc(S.config.negocio || 'Mi negocio')}</b><span>${esc(SES.nombre || '')}${SES.admin ? ' · Soporte' : ''} · ${fLarga(TODAY())}</span></div>
     <button type="button" class="topbtn" data-act="buscar" aria-label="Buscar lo que necesitas">${ic('search', 19, 2.4)}Buscar</button>
     <button type="button" class="demo-tag sync-ok" id="syncPill" style="border:none">✓ Guardado</button>
     ${roleOpts().length > 1 ? `<label class="role" for="rolSel">Ver como
@@ -988,7 +988,7 @@ function graficoDias(a, b, own) {
   <div class="row xs muted"><span>${ds[0].lab}</span><span>${semanal ? '' : 'Toca un día para verlo'}</span><span>${ds[ds.length - 1].lab}</span></div>`;
 }
 function paraEmpezarHTML() {
-  if (!on('guia') || ROL() !== 'duena' || SES.admin) return '';
+  if (!on('guia') || ROL() !== 'duena') return '';
   const p = misPend(); if (!p.length) return '';
   const tot = MIS.length, listos = tot - p.length, sig = p[0], pleg = !!S.guia.plegado;
   return `<div class="card" style="border:2px solid #F2C14E;display:flex;flex-direction:column;gap:10px">
@@ -1056,7 +1056,7 @@ function funcsHTML() {
   const fila = it => it.k ? funcFila(it) : `<div class="list-item"><span class="col" style="flex:1;gap:2px"><b style="font-size:15.5px">${esc(it.t)}</b><span class="small muted">${esc(it.d)}</span></span><span class="badge ok">Siempre</span></div>`;
   return grupos.map(g => { const h = g.items.map(fila).join(''); return h ? `<div class="sect">${esc(g.g)}</div><div class="card" style="padding:4px 16px">${h}</div>` : ''; }).join('') + (q ? '' : camposHTML()) || '<div class="card empty">No encontramos esa función.</div>';
 }
-VIEWS.funciones = () => `<h2 class="v-title">Funcionalidades</h2>${SES.admin ? '<div class="small" style="background:#FFF0C7;color:#6E4700;border-radius:12px;padding:10px 12px"><b>Modo administrador.</b> «Fija» deja la función con candado, «El dueño decide» le deja el interruptor al dueño y «No incluida» la esconde.</div>' : ''}<p class="v-sub">Prende solo lo que usa tu negocio. Lo que apagues desaparece del menú y de los formularios, y lo puedes volver a prender cuando quieras.</p>
+VIEWS.funciones = () => `<h2 class="v-title">Funcionalidades</h2>${ADM() ? '<div class="small" style="background:#FFF0C7;color:#6E4700;border-radius:12px;padding:10px 12px"><b>Modo administrador.</b> «Fija» deja la función con candado, «El dueño decide» le deja el interruptor al dueño y «No incluida» la esconde.</div>' : ''}<p class="v-sub">Prende solo lo que usa tu negocio. Lo que apagues desaparece del menú y de los formularios, y lo puedes volver a prender cuando quieras.</p>
   <input class="inp" id="fq" data-in="fq" value="${esc(UI.fq || '')}" placeholder="Buscar una función, por ejemplo «domicilio»" autocomplete="off" aria-label="Buscar una función">
   <div id="flist">${funcsHTML()}</div>`;
 
@@ -1415,7 +1415,7 @@ const CAMPOS_TXT = [
 const candadoTag = t => `<span class="badge neu" title="${esc(t)}">${ic('lock', 13, 2.4)}${esc(t)}</span>`;
 function funcFila(it) {
   const k = it.k, est = funcEstado(k), prend = on(k);
-  if (SES.admin) {
+  if (ADM()) {
     return `<div class="list-item" style="flex-wrap:wrap;gap:10px"><span class="col" style="flex:1;gap:2px;min-width:200px"><b style="font-size:15.5px">${esc(it.t)}</b><span class="small muted">${esc(it.d)}</span></span>
       <span class="col" style="gap:8px;align-items:flex-end"><span class="chips" style="gap:6px">${[['fija', 'Fija'], ['dueno', 'El dueño decide'], ['no', 'No incluida']].map(([e, l]) => `<button type="button" class="chip xs-chip ${est === e ? 'on' : ''}" data-act="funcEstado" data-id="${k}" data-v="${e}">${l}</button>`).join('')}</span>
       ${est !== 'no' ? `<span class="row" style="gap:8px"><span class="small muted">${prend ? 'Prendida' : 'Apagada'}</span><button type="button" class="toggle ${prend ? 'on' : ''}" data-act="funcTog" data-v="${k}" aria-pressed="${prend}" aria-label="${esc(it.t)}"><i></i></button></span>` : ''}</span></div>`;
@@ -1429,7 +1429,7 @@ function camposHTML() {
   <div class="card" style="padding:4px 16px">
     <div class="list-item"><span class="col" style="flex:1;gap:2px"><b style="font-size:15.5px">Qué vendió, el precio y la fecha</b><span class="small muted">Siempre se piden. Si no dices el precio se usa el del catálogo, y si no dices la fecha es hoy.</span></span>${candadoTag('Siempre')}</div>
     ${L.map(([k, t, d]) => { const c = S.campos[k]; return `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:190px"><b style="font-size:15.5px">${esc(t)}</b><span class="small muted">${esc(d)}</span></span>
-      <span class="row" style="gap:8px">${SES.admin ? `<button type="button" class="chip xs-chip ${c.candado ? 'on' : ''}" data-act="campoCandado" data-id="${k}">${ic('lock', 13, 2.4)}Candado</button>` : ''}${c.candado && !SES.admin ? candadoTag(c.obligatorio ? 'Siempre' : 'No') : `<button type="button" class="toggle ${c.obligatorio ? 'on' : ''}" data-act="campoTog" data-id="${k}" aria-pressed="${c.obligatorio}" aria-label="${esc(t)}"><i></i></button>`}</span></div>`; }).join('')}
+      <span class="row" style="gap:8px">${ADM() ? `<button type="button" class="chip xs-chip ${c.candado ? 'on' : ''}" data-act="campoCandado" data-id="${k}">${ic('lock', 13, 2.4)}Candado</button>` : ''}${c.candado && !ADM() ? candadoTag(c.obligatorio ? 'Siempre' : 'No') : `<button type="button" class="toggle ${c.obligatorio ? 'on' : ''}" data-act="campoTog" data-id="${k}" aria-pressed="${c.obligatorio}" aria-label="${esc(t)}"><i></i></button>`}</span></div>`; }).join('')}
   </div>
   <p class="small muted" style="margin:0">Lo que prendas aquí te lo pregunta el WhatsApp si se te olvida decirlo, y el formulario de «Vender» no deja guardar sin eso.</p>`;
 }
@@ -1516,12 +1516,13 @@ const SB_ACT = {
     if (NN.tipo === 'externo') await sb.from('funciones').update({ estado: 'no', prendida: false }).eq('negocio_id', data.id).eq('clave', 'comision');
     Object.assign(NN, { nombre: '', sub: '', ciudad: '', wa: '', tipo: 'comision', pct: 20 });
     const r = await sb.rpc('mis_negocios'); SES.lista = r.data || SES.lista;
+    if (SES.modo === 'panel') { await cargarResumen(); toast('Negocio creado. Revisa sus funciones y después entra a soporte a crear el usuario del dueño.'); return PCFG_ACT.cfgOpen(null, data.id); }
     toast('Negocio creado. Ahora crea el usuario del dueño.');
     await abrirNegocio(SES.lista.find(x => x.id === data.id)); location.hash = 'mi-negocio'; render();
   },
   funcTog: async (el, id, v) => {
     const f = S.funcs[v] || { estado: 'dueno', prendida: true };
-    if (f.estado === 'fija' && !SES.admin) return toast('Esta función la maneja Líderes Locales');
+    if (f.estado === 'fija' && !ADM()) return toast(SES.admin ? 'Está como «Siempre prendida». Cámbiala en el panel, en «Funciones».' : 'Esta función la maneja Líderes Locales');
     const nuevo = !f.prendida; f.prendida = nuevo; S.funcs[v] = f; aplicarFunciones(Object.entries(S.funcs).map(([clave, x]) => ({ clave, ...x })));
     if (!nuevo && S.guia) MIS.forEach(m => { if (m.mod === v && misState(m) === 'pend') S.guia.estado[m.id] = 'skip'; });
     if (D && !D.editId) D = null; renderShell(); render();
@@ -1530,21 +1531,21 @@ const SB_ACT = {
     save(); toast(`${nuevo ? 'Prendiste' : 'Apagaste'} «${funcNombre(v)}»`);
   },
   funcEstado: async (el, id, v) => {
-    if (!SES.admin) return;
+    if (!ADM()) return;
     const f = S.funcs[id] || { estado: 'dueno', prendida: true }; f.estado = v; if (v === 'no') f.prendida = false; else if (v === 'fija') f.prendida = true;
     S.funcs[id] = f; aplicarFunciones(Object.entries(S.funcs).map(([clave, x]) => ({ clave, ...x }))); renderShell(); render();
     const { error } = await sb.from('funciones').update({ estado: f.estado, prendida: f.prendida }).eq('negocio_id', SES.negocio.id).eq('clave', id);
     if (error) { toast('No se pudo cambiar: ' + errTxt(error)); recargarConfig(); }
   },
   campoTog: async (el, id) => {
-    const c = S.campos[id]; if (!c) return; if (c.candado && !SES.admin) return toast('Este dato lo maneja Líderes Locales');
+    const c = S.campos[id]; if (!c) return; if (c.candado && !ADM()) return toast(SES.admin ? 'Este dato tiene candado. Cámbialo en el panel, en «Funciones».' : 'Este dato lo maneja Líderes Locales');
     c.obligatorio = !c.obligatorio; render();
     const { error } = await sb.from('campos').update({ obligatorio: c.obligatorio }).eq('negocio_id', SES.negocio.id).eq('clave', id);
     if (error) { toast('No se pudo cambiar: ' + errTxt(error)); return recargarConfig(); }
     toast(c.obligatorio ? 'Ahora se pregunta siempre' : 'Ya no se pregunta siempre');
   },
   campoCandado: async (el, id) => {
-    if (!SES.admin) return; const c = S.campos[id]; c.candado = !c.candado; render();
+    if (!ADM()) return; const c = S.campos[id]; c.candado = !c.candado; render();
     const { error } = await sb.from('campos').update({ candado: c.candado }).eq('negocio_id', SES.negocio.id).eq('clave', id);
     if (error) { toast('No se pudo cambiar: ' + errTxt(error)); recargarConfig(); }
   },
@@ -1610,7 +1611,7 @@ const PANEL_NAV = [
   { id: 'negocios', label: 'Negocios', icon: 'team' },
   { id: 'crear', label: 'Crear negocio', icon: 'add' }
 ];
-const panelRuta = () => { const h = (location.hash || '').replace('#', ''); return PANEL_NAV.some(n => n.id === h) ? h : 'negocios'; };
+const panelRuta = () => { const h = (location.hash || '').replace('#', ''); if (h === 'config' && PNEG) return 'config'; return PANEL_NAV.some(n => n.id === h) ? h : 'negocios'; };
 async function cargarResumen() {
   const { data, error } = await sb.rpc('resumen_negocios');
   if (error) { RESUMEN = []; toast('No se pudo traer la lista de negocios: ' + errTxt(error)); }
@@ -1653,7 +1654,8 @@ function negocioCard(n) {
     <span class="small muted">${usoTxt(n.ultima_venta)}</span>
     ${pend.length ? `<div class="small" style="background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:8px 12px">${pend.map(esc).join(' · ')}</div>` : ''}
     <div class="row start" style="gap:8px;flex-wrap:wrap">
-      <button type="button" class="btn btn-p sm" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button>
+      <button type="button" class="btn btn-p sm" data-act="cfgOpen" data-id="${n.id}">${ic('grid', 18)}Funciones</button>
+      <button type="button" class="btn btn-l sm" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button>
       <button type="button" class="btn btn-l sm" data-act="subOpen" data-id="${n.id}">${ic('edit', 16)}Cambiar dirección</button>
       <button type="button" class="btn btn-l sm" data-act="negActivo" data-id="${n.id}">${n.activo ? 'Suspender' : 'Activar'}</button>
     </div></div>`;
@@ -1715,6 +1717,89 @@ const PANEL_ACT = {
     const { error } = await sb.from('negocios').update({ activo: !n.activo }).eq('id', id);
     if (error) return toast('No se pudo cambiar: ' + errTxt(error));
     await cargarResumen(); render(); toast(n.activo ? 'Negocio suspendido' : 'Negocio activo otra vez');
+  }
+};
+
+/* ---------- Funciones de un negocio, desde el panel ---------- */
+let PNEG = null, PF = null, PC = null, PPCT = 20;
+const ADM = () => SES.admin && SES.modo === 'panel';
+const PEST = [['fija', 'Siempre prendida'], ['dueno', 'El dueño decide'], ['no', 'No incluida']];
+async function cargarConfigPanel(id) {
+  const [f, c, n] = await Promise.all([
+    sb.from('funciones').select('clave,estado,prendida').eq('negocio_id', id),
+    sb.from('campos').select('clave,obligatorio,candado').eq('negocio_id', id),
+    sb.from('negocios').select('comision_pct').eq('id', id).single()
+  ]);
+  if (f.error || c.error) { toast('No se pudo traer la configuración: ' + errTxt(f.error || c.error)); PF = {}; PC = {}; return; }
+  PF = {}; (f.data || []).forEach(x => PF[x.clave] = { estado: x.estado, prendida: x.prendida });
+  PC = {}; (c.data || []).forEach(x => PC[x.clave] = { obligatorio: x.obligatorio, candado: x.candado });
+  PPCT = Number(n.data && n.data.comision_pct) || 0;
+}
+const pfOn = k => { const f = PF && PF[k]; return !f || (f.estado !== 'no' && f.prendida !== false); };
+function pfFila(it) {
+  const k = it.k, f = PF[k] || { estado: 'dueno', prendida: true };
+  const est = f.estado, prend = est === 'fija' ? true : est === 'no' ? false : f.prendida !== false;
+  const que = est === 'fija' ? 'Le aparece y no la puede apagar.' : est === 'no' ? 'No le aparece.' : `Él la prende o la apaga. Ahora está <b>${prend ? 'prendida' : 'apagada'}</b>.`;
+  return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px">
+    <span class="col" style="gap:2px"><b style="font-size:15.5px">${esc(it.t)}</b><span class="small muted">${esc(it.d)}</span></span>
+    <span class="chips" style="gap:6px">${PEST.map(([e, l]) => `<button type="button" class="chip xs-chip ${est === e ? 'on' : ''}" data-act="pfEstado" data-id="${k}" data-v="${e}" aria-pressed="${est === e}">${e === 'fija' ? ic('lock', 13, 2.4) : ''}${l}</button>`).join('')}</span>
+    <span class="row" style="gap:8px"><span class="small muted" style="flex:1">${que}</span>${est === 'dueno' ? `<button type="button" class="toggle ${prend ? 'on' : ''}" data-act="pfTog" data-id="${k}" aria-pressed="${prend}" aria-label="${esc(it.t)}"><i></i></button>` : ''}</span>
+    ${k === 'comision' && est !== 'no' ? `<div class="field" style="max-width:220px"><label for="ppct">Porcentaje de comisión</label><select class="inp" id="ppct" data-in="ppct">${[10, 15, 20, 25, 30].map(x => `<option value="${x}" ${PPCT === x ? 'selected' : ''}>${x}%</option>`).join('')}</select></div>` : ''}
+  </div>`;
+}
+VIEWS.config = () => {
+  const n = (RESUMEN || []).find(x => x.id === PNEG);
+  if (!n) return `<div class="card empty">Escoge un negocio en «Negocios».</div>`;
+  const top = `<button type="button" class="btn btn-l sm" data-act="cfgVolver">${ic('chevL', 16, 2.4)}Negocios</button>
+  <h2 class="v-title" style="margin-top:10px">Funciones de ${esc(n.nombre)}</h2>
+  <p class="v-sub">Aquí decides qué tiene este negocio. Lo que pongas aquí es lo que el dueño ve en su «Funcionalidades».</p>
+  <div class="card small" style="display:flex;flex-direction:column;gap:6px">
+    <span><b>${ic('lock', 13, 2.4)} Siempre prendida:</b> le aparece y no la puede apagar.</span>
+    <span><b>El dueño decide:</b> él la prende o la apaga cuando quiera.</span>
+    <span><b>No incluida:</b> no le aparece en ninguna parte.</span></div>`;
+  if (!PF) return top + `<div class="card empty">Cargando…</div>`;
+  const grupos = FUNCS.map(g => ({ g: g.g, items: g.items.filter(it => it.k) })).filter(g => g.items.length)
+    .map(g => `<div class="sect">${esc(g.g)}</div><div class="card" style="padding:4px 16px">${g.items.map(pfFila).join('')}</div>`).join('');
+  const L = CAMPOS_TXT.filter(([k, , , fu]) => (!fu || pfOn(fu)) && PC[k]);
+  const campos = `<div class="sect">Datos que siempre se preguntan al vender</div>
+  <p class="small muted" style="margin:0 0 8px">Prendido = el WhatsApp lo pide si se les olvida y «Vender» no deja guardar sin eso. Con candado, el dueño no lo puede cambiar.</p>
+  <div class="card" style="padding:4px 16px">
+    <div class="list-item"><span class="col" style="flex:1;gap:2px"><b style="font-size:15.5px">Qué vendió, el precio y la fecha</b><span class="small muted">Siempre se piden.</span></span>${candadoTag('Siempre')}</div>
+    ${L.map(([k, t, d]) => { const c = PC[k]; return `<div class="list-item" style="flex-wrap:wrap;gap:8px"><span class="col" style="flex:1;gap:2px;min-width:180px"><b style="font-size:15.5px">${esc(t)}</b><span class="small muted">${esc(d)}</span></span>
+      <span class="row" style="gap:8px"><button type="button" class="chip xs-chip ${c.candado ? 'on' : ''}" data-act="pcCand" data-id="${k}" aria-pressed="${c.candado}">${ic('lock', 13, 2.4)}Candado</button><button type="button" class="toggle ${c.obligatorio ? 'on' : ''}" data-act="pcTog" data-id="${k}" aria-pressed="${c.obligatorio}" aria-label="${esc(t)}"><i></i></button></span></div>`; }).join('')}
+  </div>`;
+  return top + grupos + campos + `<div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"><span class="small">Para ver cómo le quedó, o para crear usuarios y cambiar claves, entra como si fueras el dueño.</span>
+    <button type="button" class="btn btn-p block" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button></div>`;
+};
+async function pfGuardar(k, cambios) {
+  const { error } = await sb.from('funciones').update(cambios).eq('negocio_id', PNEG).eq('clave', k);
+  if (error) { toast('No se pudo cambiar: ' + errTxt(error)); await cargarConfigPanel(PNEG); render(); return false; }
+  return true;
+}
+const PCFG_ACT = {
+  cfgOpen: async (el, id) => { PNEG = id; PF = null; location.hash = 'config'; await cargarConfigPanel(id); render(); },
+  cfgVolver: async () => { location.hash = 'negocios'; await cargarResumen(); render(); },
+  pfEstado: async (el, id, v) => {
+    const f = PF[id] || { estado: 'dueno', prendida: true }; if (f.estado === v) return;
+    f.estado = v; if (v === 'no') f.prendida = false; else if (v === 'fija') f.prendida = true; else f.prendida = true;
+    PF[id] = f; render();
+    if (await pfGuardar(id, { estado: f.estado, prendida: f.prendida })) toast(`«${funcNombre(id)}»: ${PEST.find(x => x[0] === v)[1]}`);
+  },
+  pfTog: async (el, id) => {
+    const f = PF[id]; if (!f) return; f.prendida = !f.prendida; render();
+    if (await pfGuardar(id, { prendida: f.prendida })) toast(`${f.prendida ? 'Prendida' : 'Apagada'} «${funcNombre(id)}»`);
+  },
+  pcTog: async (el, id) => {
+    const c = PC[id]; if (!c) return; c.obligatorio = !c.obligatorio; render();
+    const { error } = await sb.from('campos').update({ obligatorio: c.obligatorio }).eq('negocio_id', PNEG).eq('clave', id);
+    if (error) { toast('No se pudo cambiar: ' + errTxt(error)); await cargarConfigPanel(PNEG); return render(); }
+    toast(c.obligatorio ? 'Ahora se pregunta siempre' : 'Ya no se pregunta siempre');
+  },
+  pcCand: async (el, id) => {
+    const c = PC[id]; if (!c) return; c.candado = !c.candado; render();
+    const { error } = await sb.from('campos').update({ candado: c.candado }).eq('negocio_id', PNEG).eq('clave', id);
+    if (error) { toast('No se pudo cambiar: ' + errTxt(error)); await cargarConfigPanel(PNEG); return render(); }
+    toast(c.candado ? 'Con candado: el dueño no lo puede cambiar' : 'Sin candado: el dueño lo puede cambiar');
   }
 };
 
@@ -2355,12 +2440,12 @@ VIEWS['como-voy'] = () => {
 /* ---------- Mi negocio ---------- */
 VIEWS['mi-negocio'] = () => {
   const c = S.config;
-  return `<h2 class="v-title">Mi negocio</h2><p class="v-sub">Esto lo dejamos listo contigo en la llamada de inicio, y lo puedes cambiar cuando quieras.</p>${SES.admin ? `<button type="button" class="btn btn-l block" data-act="volverPanel">${ic('team', 18)}Volver al panel de negocios</button>` : ''}
+  return `<h2 class="v-title">Mi negocio</h2><p class="v-sub">Esto lo dejamos listo contigo en la llamada de inicio, y lo puedes cambiar cuando quieras.</p>
   <div class="card" style="display:flex;flex-direction:column;gap:12px"><b>Datos del negocio</b>
     <div class="fgrid"><div class="field"><label for="cfn">Nombre del negocio</label><input class="inp" id="cfn" data-in="cfg" data-k="negocio" value="${esc(c.negocio)}"></div><div class="field"><label for="cfd">Nombre de la dueña</label><input class="inp" id="cfd" data-in="cfg" data-k="duena" value="${esc(c.duena)}"></div></div>${c.web ? `<div class="small muted">Tu página web: ${esc(c.web)}${c.ciudad ? ' · ' + esc(c.ciudad) : ''}</div>` : ''}</div>
   ${on('comision') ? '' : '<!--'}<div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="row start" style="gap:8px"><b>Comisión con Líderes Locales</b>${info('comision')}</span>
-    <div class="fgrid"><div class="field"><label for="cfc">Porcentaje</label><select class="inp" id="cfc" data-in="cfgNum" data-k="comPct" ${SES.admin ? '' : 'disabled'}>${[10, 15, 20, 25, 30].map(x => `<option value="${x}" ${c.comPct === x ? 'selected' : ''}>${x}%</option>`).join('')}</select></div></div>
-    ${SES.admin ? '' : '<span class="xs muted">El porcentaje lo cambia Líderes Locales.</span>'}
+    <div class="fgrid"><div class="field"><label for="cfc">Porcentaje</label><select class="inp" id="cfc" data-in="cfgNum" data-k="comPct" ${ADM() ? '' : 'disabled'}>${[10, 15, 20, 25, 30].map(x => `<option value="${x}" ${c.comPct === x ? 'selected' : ''}>${x}%</option>`).join('')}</select></div></div>
+    ${ADM() ? '' : `<span class="xs muted">${SES.admin ? 'El porcentaje se cambia en el panel, en «Funciones».' : 'El porcentaje lo cambia Líderes Locales.'}</span>`}
     <span class="small muted">Se cobra solo sobre ventas que llegan por Google. ${S.productos.some(p => p.anexo) ? 'Los extras no pagan: ' + S.productos.filter(p => p.anexo).map(p => esc(p.nombre)).join(', ') + '.' : 'El domicilio y los extras, como chocolates o peluches, no pagan.'}</span>
     <span class="row start" style="gap:8px"><b>¿Qué precio anotas en cada venta?</b>${info('precioModo')}</span>
     <div class="chips" data-tour="pmodo"><button type="button" class="chip ${c.precioModo === 'cliente' ? 'on' : ''}" data-act="pmodo" data-v="cliente">Lo que pagó el cliente (recomendado)</button><button type="button" class="chip ${c.precioModo === 'neto' ? 'on' : ''}" data-act="pmodo" data-v="neto">Lo que me queda, ya sin comisión</button></div>
@@ -2793,6 +2878,7 @@ const ACT = {
   ...EXT_ACT,
   ...SB_ACT,
   ...PANEL_ACT,
+  ...PCFG_ACT,
   vSinDom: () => { D.dom = 0; render(); }
 };
 function copyText(t) {
@@ -2827,7 +2913,8 @@ const INP = {
   cfgNum: el => { S.config[el.dataset.k] = Number(el.value); save(); render(); },
   ...EXT_INP,
   ...SB_INP,
-  pq2: el => { UI.pq2 = el.value; render(); }
+  pq2: el => { UI.pq2 = el.value; render(); },
+  ppct: async el => { PPCT = Number(el.value); const { error } = await sb.from('negocios').update({ comision_pct: PPCT }).eq('id', PNEG); toast(error ? 'No se pudo cambiar: ' + errTxt(error) : `Comisión en ${PPCT}%`); }
 };
 // Actualiza el pie de la venta sin cambiar el botón «Guardar», para que el toque no se pierda al salir de un campo
 function updFoot() {

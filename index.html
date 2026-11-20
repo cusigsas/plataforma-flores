@@ -1356,6 +1356,14 @@ async function arrancar() {
   try { const r = await sb.rpc('negocio_por_subdominio', { p_subdominio: subdominio() }); NEG_PUBLICO = r.data || null; } catch (e) { NEG_PUBLICO = null; }
   if (ES_PANEL()) { NEG_PUBLICO = null; document.title = 'Panel de Líderes Locales'; }
   else if (NEG_PUBLICO) document.title = NEG_PUBLICO.nombre;
+  const pase = (location.hash || '').match(/^#soporte=([\w.-]+)/);
+  if (pase && !ES_PANEL()) {
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+    pantalla(cargandoHTML());
+    const { data: v, error: ev } = await sb.auth.verifyOtp({ token_hash: pase[1], type: 'magiclink' });
+    if (ev || !v || !v.user) { pantalla(entrarHTML('No se pudo entrar a soporte. Vuelve al panel y toca «Entrar a soporte» otra vez.')); return; }
+    return entrarCon(v.user);
+  }
   const { data } = await sb.auth.getSession();
   if (!data || !data.session) { pantalla(entrarHTML()); return; }
   await entrarCon(data.session.user);
@@ -1644,7 +1652,7 @@ function negocioCard(n) {
   if (!n.productos) pend.push('No tiene productos cargados');
   return `<div class="card" style="display:flex;flex-direction:column;gap:10px;${n.activo ? '' : 'opacity:.7'}">
     <div class="row" style="flex-wrap:wrap;align-items:flex-start"><span class="col" style="flex:1;gap:3px;min-width:200px"><b style="font-size:17px">${esc(n.nombre)}</b>
-      <a class="small" href="https://${esc(sub)}.lidereslocales.com" target="_blank" rel="noopener">${esc(sub)}.lidereslocales.com</a>
+      <span class="small" style="color:var(--green,#1F5C45)">${esc(sub)}.lidereslocales.com</span>
       <span class="row start" style="gap:6px;flex-wrap:wrap">${tipo}${n.activo ? '' : '<span class="badge bad">Suspendido</span>'}${n.ciudad ? `<span class="badge neu">${esc(n.ciudad)}</span>` : ''}</span></span></div>
     <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       <div class="kpi"><span class="lab">Usuarios</span><b>${n.usuarios}</b></div>
@@ -1699,7 +1707,16 @@ function subSheet() {
   <button type="button" class="btn btn-p block" data-act="subOk">${ic('check', 20, 2.6)}Cambiar dirección</button>`;
 }
 const PANEL_ACT = {
-  soporte: async (el, id) => { const n = (RESUMEN || []).find(x => x.id === id); if (!n) return; await abrirNegocio({ id: n.id, slug: n.slug, subdominio: n.subdominio, nombre: n.nombre, rol: 'admin', es_admin: true }); location.hash = 'inicio'; },
+  soporte: async (el, id) => {
+    const n = (RESUMEN || []).find(x => x.id === id); if (!n) return;
+    if (el) { el.disabled = true; el.textContent = 'Entrando…'; }
+    try {
+      const { data, error } = await sb.functions.invoke('entrar-soporte', { body: { negocio: n.id } });
+      if (!error && data && data.token_hash) { location.href = `https://${n.subdominio || n.slug}.lidereslocales.com/#soporte=${data.token_hash}`; return; }
+    } catch (e) { }
+    // Respaldo: si la función todavía no está en Supabase, se abre aquí mismo
+    await abrirNegocio({ id: n.id, slug: n.slug, subdominio: n.subdominio, nombre: n.nombre, rol: 'admin', es_admin: true }); location.hash = 'inicio';
+  },
   volverPanel: async () => { if (syncPend) { try { await sincronizar(); } catch (e) { } } if (ES_PANEL()) { await abrirPanel(); } else location.href = 'https://gestion.lidereslocales.com/'; },
   subOpen: (el, id) => { PCAMBIO = (RESUMEN || []).find(x => x.id === id); if (PCAMBIO) openSheet(subSheet); },
   subOk: async () => {

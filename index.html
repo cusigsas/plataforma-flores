@@ -208,6 +208,7 @@ textarea.inp{padding:12px 14px;min-height:120px;line-height:1.45;resize:vertical
 .sugs .sug{width:100%}
 #pantalla{position:fixed;inset:0;z-index:120;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .login-card{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:24px;padding:24px 20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 40px rgba(19,32,27,.08)}
+.soporte-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#FFF0C7;color:#6E4700;border-radius:14px;padding:10px 12px;font-size:14px;margin-bottom:12px}
 .xs-chip{min-height:38px;padding:0 12px;font-size:13.5px}
 .demo-tag.sync-ok{background:var(--ok-bg);color:var(--ok)}
 .demo-tag.sync-guardando{background:#EEF2EF;color:var(--muted)}
@@ -729,7 +730,6 @@ const NAV = [
   { id: 'gastos', label: 'Gastos', icon: 'wallet', roles: ['duena', 'secretaria'], mod: 'gastos' },
   { id: 'equipo', label: 'Equipo', icon: 'team', roles: ['duena'], mod: 'equipo' },
   { id: 'funciones', label: 'Funcionalidades', icon: 'grid', roles: ['duena'] },
-  { id: 'admin', label: 'Negocios', icon: 'team', roles: ['duena'], admin: 1 },
   { id: 'mi-negocio', label: 'Mi negocio', icon: 'sliders', roles: ['duena'] },
   { id: 'guia', label: 'Guía', icon: 'help', roles: ['duena', 'secretaria', 'florista'] }
 ];
@@ -738,6 +738,7 @@ const route = () => { const h = (location.hash || '').replace('#', ''); const ok
 const go = id => { if (location.hash === '#' + id) render(); else location.hash = id; };
 
 function renderShell() {
+  if (SES.modo === 'panel') return renderPanelShell();
   if (!S || !S.config) return;
   const r = route(); const items = navFor();
   document.getElementById('side').innerHTML = `<div class="logo">Mi Negocio en Orden</div><div class="logo-sub">${esc(S.config.negocio || 'Mi negocio')}</div>` +
@@ -1089,7 +1090,7 @@ function respaldoHTML() {
 const SB_URL = 'https://tsvldyohzynylrqxydhg.supabase.co';
 const SB_KEY = 'sb_publishable_XljNXgBnFSaMGRECcUL5Qg_XA1zfeex';
 let sb = null, CANAL = null, CARGANDO = true, NEG_PUBLICO = null, PANEL_ABIERTO = false;
-const SES = { user: null, negocio: null, rol: 'duena', admin: false, nombre: '', empleadoId: null, lista: [] };
+const SES = { user: null, negocio: null, rol: 'duena', admin: false, nombre: '', empleadoId: null, lista: [], modo: 'negocio' };
 const ROLES_DB = { dueno: 'duena', secretaria: 'secretaria', empleado: 'florista' };
 const ROL_TXT = { dueno: 'Dueño', secretaria: 'Secretaria', empleado: 'Empleado' };
 const subdominio = () => {
@@ -1367,12 +1368,16 @@ async function entrarCon(user) {
   if (!lista || !lista.length) { await sb.auth.signOut(); pantalla(entrarHTML('Tu usuario no tiene un negocio asignado. Habla con Líderes Locales.')); return; }
   SES.lista = lista; SES.admin = !!lista[0].es_admin;
   if (ES_PANEL() && !SES.admin) { await sb.auth.signOut(); pantalla(entrarHTML('Este panel es solo para Líderes Locales. Entra por la dirección de tu negocio.')); return; }
+  if (ES_PANEL()) {
+    try { const { data: ad } = await sb.from('admins').select('nombre').eq('user_id', user.id); SES.nombre = (ad && ad[0] && ad[0].nombre) || user.email; } catch (e) { SES.nombre = user.email; }
+    return abrirPanel();
+  }
   let guardado = null; try { guardado = sessionStorage.getItem('mno-negocio'); } catch (e) { }
   const neg = lista.find(n => n.id === guardado) || lista.find(n => n.subdominio === subdominio()) || lista[0];
   await abrirNegocio(neg);
 }
 async function abrirNegocio(neg) {
-  CARGANDO = true; pantalla(cargandoHTML());
+  CARGANDO = true; pantalla(cargandoHTML()); SES.modo = 'negocio';
   SES.negocio = neg; try { sessionStorage.setItem('mno-negocio', neg.id); } catch (e) { }
   try {
     const { data: yo } = await sb.from('miembros').select('*').eq('negocio_id', neg.id).eq('user_id', SES.user.id);
@@ -1382,10 +1387,10 @@ async function abrirNegocio(neg) {
     SES.empleadoId = m && m.rol === 'empleado' ? m.empleado_id : null;
     if (m && m.rol === 'empleado' && !m.empleado_id) SES.rol = 'florista';
     await cargarDatos();
+    if (S.negocioDB && S.negocioDB.activo === false && !SES.admin) { await sb.auth.signOut(); CARGANDO = false; pantalla(entrarHTML('Este negocio está suspendido. Habla con Líderes Locales.')); return; }
   } catch (e) { CARGANDO = false; pantalla(`<div class="login-card"><b>No se pudieron traer tus datos</b><span class="small muted">${esc(errTxt(e))}</span><button type="button" class="btn btn-p block" onclick="location.reload()">Intentar de nuevo</button><button type="button" class="btn btn-l block" data-act="salir">Salir</button></div>`); return; }
   CARGANDO = false; D = null; UI.per = { k: 'hoy' };
   suscribir(); pantalla('');
-  if (ES_PANEL() && !PANEL_ABIERTO) { PANEL_ABIERTO = true; if (route() === 'inicio') location.hash = 'admin'; }
   if (!navFor().some(n => n.id === route())) location.hash = 'inicio';
   renderShell(); render(); estadoSync('ok');
 }
@@ -1512,7 +1517,7 @@ const SB_ACT = {
     Object.assign(NN, { nombre: '', sub: '', ciudad: '', wa: '', tipo: 'comision', pct: 20 });
     const r = await sb.rpc('mis_negocios'); SES.lista = r.data || SES.lista;
     toast('Negocio creado. Ahora crea el usuario del dueño.');
-    await abrirNegocio(SES.lista.find(x => x.id === data.id)); go('mi-negocio');
+    await abrirNegocio(SES.lista.find(x => x.id === data.id)); location.hash = 'mi-negocio'; render();
   },
   funcTog: async (el, id, v) => {
     const f = S.funcs[v] || { estado: 'dueno', prendida: true };
@@ -1592,8 +1597,125 @@ const SB_ACT = {
   }
 };
 const SB_INP = {
-  nn: el => { NN[el.dataset.k] = el.value; if (el.dataset.k === 'nombre') { const s = document.getElementById('nnS'); if (s && !s.dataset.tocado) { NN.sub = slugDe(el.value).replace(/-/g, ''); s.value = NN.sub; } } if (el.dataset.k === 'sub') el.dataset.tocado = '1'; },
+  nn: el => { NN[el.dataset.k] = el.value; if (el.dataset.k === 'nombre') { const s = document.getElementById('nnS'); if (s && !s.dataset.tocado) { NN.sub = slugDe(el.value).replace(/-/g, ''); s.value = NN.sub; } } if (el.dataset.k === 'sub') el.dataset.tocado = '1'; const pv = document.getElementById('nnPrev'); if (pv) pv.textContent = (slugDe(NN.sub || NN.nombre) || 'nombre') + '.lidereslocales.com'; },
   nnPct: el => { NN.pct = Number(el.value); }
+};
+
+/* =========================================================
+   Panel de Líderes Locales (gestion.lidereslocales.com)
+   Vista general de todos los negocios, sin entrar a ninguno.
+   ========================================================= */
+let RESUMEN = null, PCAMBIO = null;
+const PANEL_NAV = [
+  { id: 'negocios', label: 'Negocios', icon: 'team' },
+  { id: 'crear', label: 'Crear negocio', icon: 'add' }
+];
+const panelRuta = () => { const h = (location.hash || '').replace('#', ''); return PANEL_NAV.some(n => n.id === h) ? h : 'negocios'; };
+async function cargarResumen() {
+  const { data, error } = await sb.rpc('resumen_negocios');
+  if (error) { RESUMEN = []; toast('No se pudo traer la lista de negocios: ' + errTxt(error)); }
+  else RESUMEN = data || [];
+}
+async function abrirPanel() {
+  SES.modo = 'panel'; SES.negocio = null; CARGANDO = false; D = null;
+  try { if (CANAL) { sb.removeChannel(CANAL); CANAL = null; } } catch (e) { }
+  try { sessionStorage.removeItem('mno-negocio'); } catch (e) { }
+  pantalla('');
+  if (!PANEL_NAV.some(n => n.id === (location.hash || '').replace('#', ''))) location.hash = 'negocios';
+  RESUMEN = null; render(); await cargarResumen(); render();
+}
+function renderPanelShell() {
+  const r = panelRuta();
+  document.getElementById('side').innerHTML = `<div class="logo">Líderes Locales</div><div class="logo-sub">Panel de negocios</div>` +
+    PANEL_NAV.map(n => `<a href="#${n.id}" class="${r === n.id ? 'on' : ''}">${ic(n.icon, 21)}${n.label}</a>`).join('') +
+    `<a href="#" data-act="salir" style="margin-top:auto">${ic('logout', 21)}Salir</a>`;
+  const bn = document.getElementById('bnav');
+  const cells = PANEL_NAV.map(n => `<a href="#${n.id}" class="${r === n.id ? 'on' : ''}">${ic(n.icon, 23)}${n.label}</a>`).concat(`<button type="button" data-act="salir">${ic('logout', 23)}Salir</button>`);
+  bn.style.gridTemplateColumns = `repeat(${cells.length},minmax(0,1fr))`; bn.innerHTML = cells.join('');
+  document.getElementById('top').innerHTML = `<div class="brand"><b>Panel de Líderes Locales</b><span>${esc(SES.nombre || (SES.user && SES.user.email) || '')} · ${fLarga(TODAY())}</span></div>`;
+}
+const usoTxt = f => { if (!f) return 'Sin ventas todavía'; const d = dBetween(parseD(String(f).slice(0, 10)), TODAY()); return d <= 0 ? 'Última venta: hoy' : d === 1 ? 'Última venta: ayer' : `Última venta: hace ${d} días`; };
+function negocioCard(n) {
+  const sub = n.subdominio || n.slug;
+  const tipo = n.comision === 'no' ? '<span class="badge neu">Externo · sin comisión</span>' : '<span class="badge ok">Cliente · con comisión</span>';
+  const pend = [];
+  if (!n.tiene_dueno) pend.push('Falta crear el usuario del dueño');
+  if (!n.productos) pend.push('No tiene productos cargados');
+  return `<div class="card" style="display:flex;flex-direction:column;gap:10px;${n.activo ? '' : 'opacity:.7'}">
+    <div class="row" style="flex-wrap:wrap;align-items:flex-start"><span class="col" style="flex:1;gap:3px;min-width:200px"><b style="font-size:17px">${esc(n.nombre)}</b>
+      <a class="small" href="https://${esc(sub)}.lidereslocales.com" target="_blank" rel="noopener">${esc(sub)}.lidereslocales.com</a>
+      <span class="row start" style="gap:6px;flex-wrap:wrap">${tipo}${n.activo ? '' : '<span class="badge bad">Suspendido</span>'}${n.ciudad ? `<span class="badge neu">${esc(n.ciudad)}</span>` : ''}</span></span></div>
+    <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="kpi"><span class="lab">Usuarios</span><b>${n.usuarios}</b></div>
+      <div class="kpi"><span class="lab">Ventas 30 días</span><b>${n.ventas_30}</b></div>
+      <div class="kpi"><span class="lab">Productos</span><b>${n.productos}</b></div>
+    </div>
+    <span class="small muted">${usoTxt(n.ultima_venta)}</span>
+    ${pend.length ? `<div class="small" style="background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:8px 12px">${pend.map(esc).join(' · ')}</div>` : ''}
+    <div class="row start" style="gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn btn-p sm" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button>
+      <button type="button" class="btn btn-l sm" data-act="subOpen" data-id="${n.id}">${ic('edit', 16)}Cambiar dirección</button>
+      <button type="button" class="btn btn-l sm" data-act="negActivo" data-id="${n.id}">${n.activo ? 'Suspender' : 'Activar'}</button>
+    </div></div>`;
+}
+VIEWS.negocios = () => {
+  const L = RESUMEN;
+  const q = sinTilde(UI.pq2 || '').trim();
+  const F = (L || []).filter(n => !q || sinTilde(n.nombre + ' ' + (n.subdominio || '') + ' ' + (n.ciudad || '')).includes(q));
+  const act = (L || []).filter(n => n.activo).length;
+  return `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Negocios</h2><a class="btn btn-p sm" href="#crear">${ic('add', 18, 2.6)}Crear negocio</a></div>
+  <p class="v-sub">Aquí ves todos los negocios. «Entrar a soporte» abre el negocio como lo ve el dueño, para hacer el cambio que necesite.</p>
+  ${L === null ? '<div class="card empty">Cargando negocios…</div>' : `
+  <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    <div class="kpi"><span class="lab">Negocios activos</span><b>${act}</b></div>
+    <div class="kpi"><span class="lab">Sin dueño todavía</span><b>${L.filter(n => !n.tiene_dueno).length}</b></div>
+    <div class="kpi"><span class="lab">Con ventas este mes</span><b>${L.filter(n => n.ventas_30 > 0).length}</b></div>
+  </div>
+  ${L.length > 3 ? `<input class="inp" id="pq2" data-in="pq2" value="${esc(UI.pq2 || '')}" placeholder="Buscar por nombre, dirección o ciudad" autocomplete="off" aria-label="Buscar negocio">` : ''}
+  ${F.length ? F.map(negocioCard).join('') : `<div class="card empty">${L.length ? 'No encontramos ese negocio.' : 'Todavía no hay negocios. Crea el primero.'}</div>`}`}`;
+};
+VIEWS.crear = () => {
+  const sub = slugDe(NN.sub || NN.nombre);
+  return `<h2 class="v-title">Crear negocio</h2><p class="v-sub">La dirección queda funcionando apenas lo crees. Después entras a soporte para crear el usuario del dueño y dejar las funciones listas.</p>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="nnN">Nombre del negocio</label><input class="inp" id="nnN" data-in="nn" data-k="nombre" value="${esc(NN.nombre)}" placeholder="Ej: Floristería Las Rosas"></div>
+    <div class="field"><label for="nnS">Dirección</label><div class="row" style="gap:6px"><input class="inp" id="nnS" data-in="nn" data-k="sub" value="${esc(NN.sub)}" placeholder="lasrosasmedellin" autocapitalize="none" style="flex:1"><span class="small muted">.lidereslocales.com</span></div>
+      <span class="xs muted">Nombre corto más la ciudad si hace falta, sin tildes ni espacios. Así va a quedar: <b id="nnPrev">${esc(sub || 'nombre')}.lidereslocales.com</b></span></div>
+    <div class="fgrid"><div class="field"><label for="nnC">Ciudad</label><input class="inp" id="nnC" data-in="nn" data-k="ciudad" value="${esc(NN.ciudad)}"></div><div class="field"><label for="nnW">WhatsApp del negocio</label><input class="inp" id="nnW" data-in="nn" data-k="wa" inputmode="tel" value="${esc(NN.wa)}"></div></div>
+    <div class="small strong">¿Qué tipo de negocio es?</div>
+    <div class="chips">${[['comision', 'Cliente de Líderes Locales (con comisión)'], ['externo', 'Negocio externo (sin comisión)']].map(([k, l]) => `<button type="button" class="chip ${NN.tipo === k ? 'on' : ''}" data-act="nnTipo" data-v="${k}">${l}</button>`).join('')}</div>
+    ${NN.tipo === 'comision' ? `<div class="field" style="max-width:220px"><label for="nnP">Comisión</label><select class="inp" id="nnP" data-in="nnPct">${[10, 15, 20, 25, 30].map(x => `<option value="${x}" ${NN.pct === x ? 'selected' : ''}>${x}%</option>`).join('')}</select></div>` : ''}
+    <button type="button" class="btn btn-p block" data-act="nnCrear" id="nnBtn">${ic('add', 20, 2.4)}Crear negocio</button>
+    <span class="xs muted">Los productos y las fotos se cargan aparte, por ahora con Claude.</span>
+  </div>`;
+};
+function subSheet() {
+  const n = PCAMBIO;
+  return `<div class="sheet-h"><h3>Dirección de ${esc(n.nombre)}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <div class="field"><label for="subN">Dirección nueva</label><div class="row" style="gap:6px"><input class="inp" id="subN" value="${esc(n.subdominio || n.slug)}" autocapitalize="none" style="flex:1"><span class="small muted">.lidereslocales.com</span></div></div>
+  <p class="small muted" style="margin:0">Los usuarios siguen entrando con el mismo usuario y la misma clave, solo cambia la dirección. Avísales la nueva.</p>
+  <button type="button" class="btn btn-p block" data-act="subOk">${ic('check', 20, 2.6)}Cambiar dirección</button>`;
+}
+const PANEL_ACT = {
+  soporte: async (el, id) => { const n = (RESUMEN || []).find(x => x.id === id); if (!n) return; await abrirNegocio({ id: n.id, slug: n.slug, subdominio: n.subdominio, nombre: n.nombre, rol: 'admin', es_admin: true }); location.hash = 'inicio'; },
+  volverPanel: async () => { if (syncPend) { try { await sincronizar(); } catch (e) { } } if (ES_PANEL()) { await abrirPanel(); } else location.href = 'https://gestion.lidereslocales.com/'; },
+  subOpen: (el, id) => { PCAMBIO = (RESUMEN || []).find(x => x.id === id); if (PCAMBIO) openSheet(subSheet); },
+  subOk: async () => {
+    const v = slugDe(document.getElementById('subN').value);
+    if (!v) return toast('Escribe la dirección');
+    if (RESERVADOS.includes(v)) return toast('Esa dirección está reservada, usa otra');
+    const { error } = await sb.from('negocios').update({ subdominio: v }).eq('id', PCAMBIO.id);
+    if (error) return toast(/duplicate|unique/i.test(error.message) ? 'Esa dirección ya la tiene otro negocio' : 'No se pudo cambiar: ' + errTxt(error));
+    closeSheet(); await cargarResumen(); render(); toast(`Listo, ahora es ${v}.lidereslocales.com`);
+  },
+  negActivo: async (el, id) => {
+    const n = (RESUMEN || []).find(x => x.id === id); if (!n) return;
+    if (n.activo && UI.suspAsk !== id) { UI.suspAsk = id; return toast('Toca «Suspender» otra vez para confirmar. Nadie del negocio va a poder entrar.'); }
+    UI.suspAsk = null;
+    const { error } = await sb.from('negocios').update({ activo: !n.activo }).eq('id', id);
+    if (error) return toast('No se pudo cambiar: ' + errTxt(error));
+    await cargarResumen(); render(); toast(n.activo ? 'Negocio suspendido' : 'Negocio activo otra vez');
+  }
 };
 
 const EXT_ACT = {
@@ -2233,7 +2355,7 @@ VIEWS['como-voy'] = () => {
 /* ---------- Mi negocio ---------- */
 VIEWS['mi-negocio'] = () => {
   const c = S.config;
-  return `<h2 class="v-title">Mi negocio</h2><p class="v-sub">Esto lo dejamos listo contigo en la llamada de inicio, y lo puedes cambiar cuando quieras.</p>${SES.admin ? `<a class="btn btn-l block" href="#admin">${ic('team', 18)}Ver todos los negocios</a>` : ''}
+  return `<h2 class="v-title">Mi negocio</h2><p class="v-sub">Esto lo dejamos listo contigo en la llamada de inicio, y lo puedes cambiar cuando quieras.</p>${SES.admin ? `<button type="button" class="btn btn-l block" data-act="volverPanel">${ic('team', 18)}Volver al panel de negocios</button>` : ''}
   <div class="card" style="display:flex;flex-direction:column;gap:12px"><b>Datos del negocio</b>
     <div class="fgrid"><div class="field"><label for="cfn">Nombre del negocio</label><input class="inp" id="cfn" data-in="cfg" data-k="negocio" value="${esc(c.negocio)}"></div><div class="field"><label for="cfd">Nombre de la dueña</label><input class="inp" id="cfd" data-in="cfg" data-k="duena" value="${esc(c.duena)}"></div></div>${c.web ? `<div class="small muted">Tu página web: ${esc(c.web)}${c.ciudad ? ' · ' + esc(c.ciudad) : ''}</div>` : ''}</div>
   ${on('comision') ? '' : '<!--'}<div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="row start" style="gap:8px"><b>Comisión con Líderes Locales</b>${info('comision')}</span>
@@ -2670,6 +2792,7 @@ const ACT = {
   ...GACT,
   ...EXT_ACT,
   ...SB_ACT,
+  ...PANEL_ACT,
   vSinDom: () => { D.dom = 0; render(); }
 };
 function copyText(t) {
@@ -2703,7 +2826,8 @@ const INP = {
   cfg: el => { S.config[el.dataset.k] = el.value; save(); if (el.dataset.k !== 'plantilla') renderShell(); },
   cfgNum: el => { S.config[el.dataset.k] = Number(el.value); save(); render(); },
   ...EXT_INP,
-  ...SB_INP
+  ...SB_INP,
+  pq2: el => { UI.pq2 = el.value; render(); }
 };
 // Actualiza el pie de la venta sin cambiar el botón «Guardar», para que el toque no se pierda al salir de un campo
 function updFoot() {
@@ -2728,16 +2852,22 @@ document.addEventListener('input', e => { const el = e.target.closest('[data-in]
 document.addEventListener('change', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (['money', 'vPrecio', 'cTot', 'vparte', 'ed', 'vdom', 'vabono'].includes(k) || (k === 'pd' && el.dataset.k !== 'nombre')) INP[k](el, e); });
 document.addEventListener('keyup', e => { const el = e.target.closest('[data-in]'); if (!el) return; const k = el.dataset.in; if (k === 'vPrecio') { D.items[el.dataset.id].precio = num(el.value); updFoot(); } if (k === 'vparte') { D.parte = num(el.value); updFoot(); } if (k === 'vdom') { D.dom = num(el.value); updFoot(); } if (k === 'vabono') { D.abono = num(el.value); } if (k === 'cTot') { UI.compra.total = num(el.value); updCompra(); } if (k === 'pd' && el.dataset.k !== 'nombre') { PD[el.dataset.k] = num(el.value); pdRefresh(); } if (k === 'ed') { ED[el.dataset.k] = num(el.value); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (document.getElementById('popRoot').innerHTML) document.getElementById('popRoot').innerHTML = ''; else if (TOUR) tourEnd(); else if (sheetFn && !sheetLock) ACT.close(); } });
-window.addEventListener('hashchange', () => { if (!S || CARGANDO) return; if (route() === 'mi-negocio') HISTDB = null; if (D && D.editId && route() !== 'vender') D = null; if (TOUR) { const m = MIS.find(x => x.id === TOUR.mid); if (m && route() !== m.route) TOUR = null; } window.scrollTo(0, 0); renderShell(); render(); });
+window.addEventListener('hashchange', () => { if (SES.modo === 'panel') { window.scrollTo(0, 0); render(); return; } if (!S || CARGANDO) return; if (route() === 'mi-negocio') HISTDB = null; if (D && D.editId && route() !== 'vender') D = null; if (TOUR) { const m = MIS.find(x => x.id === TOUR.mid); if (m && route() !== m.route) TOUR = null; } window.scrollTo(0, 0); renderShell(); render(); });
 let tRaf = 0; const tReq = () => { if (!TOUR) return; cancelAnimationFrame(tRaf); tRaf = requestAnimationFrame(drawTour); };
 window.addEventListener('resize', tReq); document.addEventListener('scroll', tReq, true); document.addEventListener('input', tReq);
 
 function render() {
+  if (SES.modo === 'panel') {
+    const act = document.activeElement && document.activeElement.id;
+    renderPanelShell(); document.getElementById('view').innerHTML = VIEWS[panelRuta()]();
+    if (act) { const el = document.getElementById(act); if (el && el.tagName === 'INPUT') { el.focus(); try { const L = el.value.length; el.setSelectionRange(L, L); } catch (e) { } } }
+    return;
+  }
   if (!S || !S.config || CARGANDO) return;
   const r = route();
   const v = document.getElementById('view');
   const active = document.activeElement && document.activeElement.id;
-  v.innerHTML = hudHTML(r) + (VIEWS[r] || VIEWS.inicio)();
+  v.innerHTML = (SES.admin ? `<div class="soporte-bar"><span>Estás en <b>soporte</b> de ${esc(S.config.negocio)}. Lo que cambies queda a nombre de Líderes Locales.</span><button type="button" class="btn btn-l xs" data-act="volverPanel">${ic('chevL', 16, 2.4)}Volver al panel</button></div>` : '') + hudHTML(r) + (VIEWS[r] || VIEWS.inicio)();
   renderShell();
   if (active) { const el = document.getElementById(active); if (el && el.tagName === 'INPUT') { el.focus(); try { const L = el.value.length; el.setSelectionRange(L, L); } catch (e) { } } }
   checkMissions();

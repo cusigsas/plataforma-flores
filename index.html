@@ -1885,7 +1885,7 @@ function negocioCard(n) {
   const sub = n.subdominio || n.slug;
   const tipo = n.comision === 'no' ? '<span class="badge neu">Externo · sin comisión</span>' : '<span class="badge ok">Cliente · con comisión</span>';
   const pend = [];
-  if (!n.tiene_dueno) pend.push('Falta crear el usuario del dueño');
+  if (!n.tiene_dueno) pend.push('Todavía no tiene dueño: invítalo con «Invitar»');
   if (!n.productos) pend.push('No tiene productos cargados');
   return `<div class="card" style="display:flex;flex-direction:column;gap:10px;${n.activo ? '' : 'opacity:.7'}">
     <div class="row" style="flex-wrap:wrap;align-items:flex-start"><span class="col" style="flex:1;gap:3px;min-width:200px"><b style="font-size:17px">${esc(n.nombre)}</b>
@@ -1899,7 +1899,8 @@ function negocioCard(n) {
     <span class="small muted">${usoTxt(n.ultima_venta)}</span>
     ${pend.length ? `<div class="small" style="background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:8px 12px">${pend.map(esc).join(' · ')}</div>` : ''}
     <div class="row start" style="gap:8px;flex-wrap:wrap">
-      <button type="button" class="btn btn-p sm" data-act="cfgOpen" data-id="${n.id}">${ic('grid', 18)}Funciones</button>
+      <button type="button" class="btn ${n.tiene_dueno ? 'btn-l' : 'btn-p'} sm" data-act="pinvOpen" data-id="${n.id}">${ic('mail', 18)}Invitar</button>
+      <button type="button" class="btn ${n.tiene_dueno ? 'btn-p' : 'btn-l'} sm" data-act="cfgOpen" data-id="${n.id}">${ic('grid', 18)}Funciones</button>
       <button type="button" class="btn btn-l sm" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button>
       <button type="button" class="btn btn-l sm" data-act="subOpen" data-id="${n.id}">${ic('edit', 16)}Cambiar dirección</button>
       <button type="button" class="btn btn-l sm" data-act="negActivo" data-id="${n.id}">${n.activo ? 'Suspender' : 'Activar'}</button>
@@ -1911,7 +1912,7 @@ VIEWS.negocios = () => {
   const F = (L || []).filter(n => !q || sinTilde(n.nombre + ' ' + (n.subdominio || '') + ' ' + (n.ciudad || '')).includes(q));
   const act = (L || []).filter(n => n.activo).length;
   return `<div class="row" style="flex-wrap:wrap"><h2 class="v-title">Negocios</h2><a class="btn btn-p sm" href="#crear">${ic('add', 18, 2.6)}Crear negocio</a></div>
-  <p class="v-sub">Aquí ves todos los negocios. «Entrar a soporte» abre el negocio como lo ve el dueño, para hacer el cambio que necesite.</p>
+  <p class="v-sub">Aquí ves todos los negocios. «Invitar» le manda un correo al dueño o a su secretaria para que escojan su usuario y su clave. «Entrar a soporte» abre el negocio como lo ve el dueño.</p>
   ${L === null ? '<div class="card empty">Cargando negocios…</div>' : `
   <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     <div class="kpi"><span class="lab">Negocios activos</span><b>${act}</b></div>
@@ -1923,7 +1924,7 @@ VIEWS.negocios = () => {
 };
 VIEWS.crear = () => {
   const sub = slugDe(NN.sub || NN.nombre);
-  return `<h2 class="v-title">Crear negocio</h2><p class="v-sub">La dirección queda funcionando apenas lo crees. Después entras a soporte para crear el usuario del dueño y dejar las funciones listas.</p>
+  return `<h2 class="v-title">Crear negocio</h2><p class="v-sub">La dirección queda funcionando apenas lo crees. Después dejas las funciones listas e invitas al dueño por correo con «Invitar».</p>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div class="field"><label for="nnN">Nombre del negocio</label><input class="inp" id="nnN" data-in="nn" data-k="nombre" value="${esc(NN.nombre)}" placeholder="Ej: Floristería Las Rosas"></div>
     <div class="field"><label for="nnS">Dirección</label><div class="row" style="gap:6px"><input class="inp" id="nnS" data-in="nn" data-k="sub" value="${esc(NN.sub)}" placeholder="lasrosasmedellin" autocapitalize="none" style="flex:1"><span class="small muted">.lidereslocales.com</span></div>
@@ -1943,6 +1944,54 @@ function subSheet() {
   <p class="small muted" style="margin:0">Los usuarios siguen entrando con el mismo usuario y la misma clave, solo cambia la dirección. Avísales la nueva.</p>
   <button type="button" class="btn btn-p block" data-act="subOk">${ic('check', 20, 2.6)}Cambiar dirección</button>`;
 }
+/* Invitar desde el panel, sin entrar a soporte */
+let PINV = null;
+function cargarPinv() {
+  sb.from('invitaciones').select('id,nombre,correo,rol,enviada,vence').eq('negocio_id', PINV.neg).is('usada', null).eq('cancelada', false).order('enviada', { ascending: false })
+    .then(({ data }) => { if (!PINV) return; PINV.lista = data || []; if (sheetFn === pinvSheet) { pinvLeer(); drawSheet(); } });
+}
+function pinvLeer() { if (!PINV) return; [['piN', 'nombre'], ['piM', 'correo'], ['piT', 'telefono']].forEach(([id, k]) => { const el = document.getElementById(id); if (el) PINV[k] = el.value; }); }
+function pinvSheet() {
+  const p = PINV, n = (RESUMEN || []).find(x => x.id === p.neg) || {}, ahora = new Date();
+  return `<div class="sheet-h"><h3>Invitar a ${esc(n.nombre || 'este negocio')}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <p class="small muted" style="margin:0">Le llega un correo de Líderes Locales con un botón para que escoja su usuario y su clave. Va a entrar por ${esc((n.subdominio || n.slug || '') + '.lidereslocales.com')}.</p>
+  <div class="field"><label for="piN">Nombre</label><input class="inp" id="piN" value="${esc(p.nombre)}" placeholder="Nombre y apellido"></div>
+  <div class="small strong">¿Qué hace?</div>
+  <div class="chips">${[['dueno', 'Dueño'], ['secretaria', 'Secretaria']].map(([k, l]) => `<button type="button" class="chip ${p.rol === k ? 'on' : ''}" data-act="pinvRol" data-v="${k}">${l}</button>`).join('')}</div>
+  <p class="small muted" style="margin:0">${p.rol === 'dueno' ? 'Ve todo el negocio, la plata y la configuración, y puede invitar a su equipo.' : 'Registra ventas, gastos, compras y clientes. No ve las ganancias.'} Los empleados los invita el dueño desde su plataforma.</p>
+  <div class="field"><label for="piM">Su correo</label><input class="inp" id="piM" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc(p.correo)}" placeholder="nombre@correo.com"></div>
+  <div class="field"><label for="piT">Celular para WhatsApp (opcional)</label><input class="inp" id="piT" inputmode="tel" value="${esc(p.telefono)}" placeholder="300 000 0000"><span class="xs muted">Desde este número podrá registrar ventas por WhatsApp.</span></div>
+  <button type="button" class="btn btn-p block" data-act="pinvOk" id="piBtn">${ic('mail', 20)}Enviar invitación</button>
+  ${p.lista === null ? '<span class="xs muted">Buscando invitaciones pendientes…</span>' : p.lista.length ? `<div class="sect" style="margin:6px 0 0">Invitaciones que todavía no se usan</div>
+  ${p.lista.map(x => { const vencio = new Date(x.vence) < ahora;
+    return `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:160px"><b style="font-size:15px">${esc(x.nombre)}</b><span class="small muted">${esc(x.correo)} · ${ROL_TXT[x.rol]}</span><span class="xs" style="${vencio ? 'color:var(--bad);font-weight:700' : 'color:var(--muted)'}">${vencio ? 'Venció, mándasela otra vez' : 'Enviada el ' + fCorta(new Date(x.enviada))}</span></span>
+    <span class="row" style="gap:6px"><button type="button" class="btn btn-l xs" data-act="pinvReenviar" data-id="${x.id}">${ic('mail', 16)}Mandar otra vez</button><button type="button" class="btn btn-l xs" data-act="pinvCancelar" data-id="${x.id}" aria-label="Cancelar la invitación">${ic('x', 16)}</button></span></div>`; }).join('')}` : ''}`;
+}
+const PINV_ACT = {
+  pinvOpen: (el, id) => { const n = (RESUMEN || []).find(x => x.id === id); PINV = { neg: id, nombre: '', correo: '', telefono: '', rol: n && n.tiene_dueno ? 'secretaria' : 'dueno', lista: null }; openSheet(pinvSheet); cargarPinv(); },
+  pinvRol: (el, id, v) => { pinvLeer(); PINV.rol = v; drawSheet(); },
+  pinvOk: async () => {
+    pinvLeer();
+    const nombre = PINV.nombre.trim(), correo = PINV.correo.trim().toLowerCase(), tel = PINV.telefono.replace(/\D/g, '');
+    if (!nombre) return toast('Escribe el nombre');
+    if (!CORREO_OK(correo)) return toast('Revisa el correo, parece que está mal escrito');
+    const btn = document.getElementById('piBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    const r = await llamarCuentas({ accion: 'invitar', negocio: PINV.neg, nombre, correo, rol: PINV.rol, telefono: tel || null });
+    if (r.error) { if (btn) { btn.disabled = false; btn.innerHTML = `${ic('mail', 20)}Enviar invitación`; } if (r.guardada) cargarPinv(); return toast(r.error); }
+    Object.assign(PINV, { nombre: '', correo: '', telefono: '', lista: null }); drawSheet(); cargarPinv();
+    toast(`Listo, le llegó la invitación a ${correo}`);
+  },
+  pinvReenviar: async (el, id) => {
+    el.disabled = true; el.textContent = 'Enviando…'; pinvLeer();
+    const r = await llamarCuentas({ accion: 'reenviar', id });
+    cargarPinv(); toast(r.error ? 'No se pudo mandar: ' + r.error : 'Listo, se la mandamos otra vez');
+  },
+  pinvCancelar: async (el, id) => {
+    pinvLeer();
+    const { error } = await sb.rpc('invitacion_cancelar', { p_id: id });
+    cargarPinv(); toast(error ? 'No se pudo cancelar: ' + errTxt(error) : 'Invitación cancelada: ese enlace ya no sirve');
+  }
+};
 const PANEL_ACT = {
   soporte: async (el, id) => {
     const n = (RESUMEN || []).find(x => x.id === id); if (!n) return;
@@ -2026,7 +2075,7 @@ VIEWS.config = () => {
     ${L.map(([k, t, d]) => { const c = PC[k]; return `<div class="list-item" style="flex-wrap:wrap;gap:8px"><span class="col" style="flex:1;gap:2px;min-width:180px"><b style="font-size:15.5px">${esc(t)}</b><span class="small muted">${esc(d)}</span></span>
       <span class="row" style="gap:8px"><button type="button" class="chip xs-chip ${c.candado ? 'on' : ''}" data-act="pcCand" data-id="${k}" aria-pressed="${c.candado}">${ic('lock', 13, 2.4)}Candado</button><button type="button" class="toggle ${c.obligatorio ? 'on' : ''}" data-act="pcTog" data-id="${k}" aria-pressed="${c.obligatorio}" aria-label="${esc(t)}"><i></i></button></span></div>`; }).join('')}
   </div>`;
-  return top + atajos + grupos + campos + `<div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"><span class="small">Para ver cómo le quedó, o para crear usuarios y cambiar claves, entra como si fueras el dueño.</span>
+  return top + atajos + grupos + campos + `<div class="card" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"><span class="small">Para invitar al dueño, toca «Invitar» en la lista de negocios. Para ver cómo le quedó, o para cambiar claves, entra como si fueras el dueño.</span>
     <button type="button" class="btn btn-p block" data-act="soporte" data-id="${n.id}">${ic('sliders', 18)}Entrar a soporte</button></div>`;
 };
 async function pfGuardar(k, cambios) {
@@ -3658,6 +3707,7 @@ const ACT = {
   ...EXT_ACT,
   ...SB_ACT,
   ...PANEL_ACT,
+  ...PINV_ACT,
   ...PCFG_ACT,
   ...INV_ACT,
   ...CLAVE_ACT,

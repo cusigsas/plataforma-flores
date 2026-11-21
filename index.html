@@ -306,6 +306,7 @@ const ICONS = {
   alert: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
   heart: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
   cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
   msg: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
   truck: '<rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
   box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/>',
@@ -369,8 +370,8 @@ const GUIAS = {
     'Cuando la barra se llena, todo lo que siga entrando es ganancia.'] }),
   'mi-negocio': () => ({ t: 'Los datos y ajustes de tu negocio. Casi siempre lo dejamos listo contigo al empezar.', p: [
     'En «Precios y ganancia» eliges cuánto quieres que te quede de cada arreglo (mínimo 30%).',
-    'En «Usuarios y claves» creas la entrada de tu secretaria o tu equipo.',
-    'Si te equivocas en algo, en «Historial» lo puedes deshacer.'] }),
+    'En «Usuarios y claves» invitas por correo a tu secretaria o tu equipo: a cada uno le llega un enlace para escoger su usuario y su clave.',
+    'Si te equivocas en algo, en «Auditoría» lo puedes deshacer.'] }),
   inventario: () => ({ t: 'Aquí ves cuánto tienes de cada flor e insumo y a qué precio lo compraste.', p: [
     'La primera vez, toca «Empezar el conteo» y escribe lo que tienes hoy.',
     'Cada compra suma flores nuevas y cada venta gasta primero las más viejas. Si un arreglo lleva viejas y nuevas, cada parte se cobra a su precio.',
@@ -424,7 +425,7 @@ const INFO = {
   porCobrar: ['Por cobrar', 'Lo que te deben los clientes que dejaron un abono y todavía no pagan el resto.'],
   domicilio: ['Domicilio', 'Lo que le cobras al cliente por llevar el pedido. Suma a la venta y no paga comisión. La gasolina o el mensajero que lo lleva lo anotas en Gastos, en «Llevar pedidos».'],
   obligatorios: ['Datos que siempre se preguntan', 'Si prendes uno, el WhatsApp te lo pregunta cuando se te olvida decirlo, y el formulario de «Vender» no deja guardar sin ese dato. Los que tienen candado los maneja Líderes Locales.'],
-  usuarios: ['Usuarios y claves', 'Cada persona entra con su propio usuario y su clave. La secretaria no ve las ganancias y cada empleado solo ve lo suyo. Si a alguien se le olvida la clave, aquí se la cambias.'],
+  usuarios: ['Usuarios y claves', 'Invita a cada persona con su correo: le llega un enlace para que ella misma escoja su usuario y su clave. La secretaria no ve las ganancias y cada empleado solo ve lo suyo. Si a alguien se le olvida la clave, toca «Se me olvidó la clave» al entrar y le llega un correo.'],
   extra: ['Extras', 'Chocolates, peluches, globos y vinos que se venden con el arreglo. Según lo acordado con tu negocio, no pagan comisión.']
 };
 const info = k => `<button type="button" class="info" data-act="info" data-id="${k}" aria-label="Qué significa: ${esc(INFO[k] ? INFO[k][0] : '')}">i</button>`;
@@ -1263,7 +1264,7 @@ const subdominio = () => {
   const h = location.hostname; const m = h.match(/^([a-z0-9-]+)\.lidereslocales\.com$/i);
   return m ? m[1].toLowerCase() : 'flores';
 };
-const RESERVADOS = ['www', 'gestion', 'admin', 'datos', 'api', 'mail', 'app', 'panel', 'soporte'];
+const RESERVADOS = ['www', 'gestion', 'admin', 'datos', 'api', 'mail', 'app', 'panel', 'soporte', 'send', 'rsend'];
 const ES_PANEL = () => ['gestion', 'admin'].includes(subdominio());
 const limpiarUsuario = u => String(u || '').trim().replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
 const correoDe = (u, slug) => String(u).includes('@') ? String(u).trim().toLowerCase() : `${limpiarUsuario(u)}.${slug}@usuarios.lidereslocales.com`;
@@ -1501,7 +1502,7 @@ function entrarHTML(msg) {
     <div class="field"><label for="lgC">Clave</label><div class="row" style="gap:8px"><input class="inp" id="lgC" name="password" type="password" autocomplete="current-password" placeholder="Tu clave" style="font-size:18px;flex:1"><button type="button" class="btn btn-l sm" data-act="verClave" aria-label="Ver la clave">Ver</button></div></div>
     <div id="lgMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
     <button type="submit" class="btn btn-p block" id="lgBtn" style="min-height:58px;font-size:18px">Entrar</button>
-    <p class="small muted" style="margin:0;text-align:center">¿Se te olvidó la clave? Pídele a la dueña del negocio o a Líderes Locales que te la cambie.</p>
+    ${NEG_PUBLICO ? '<button type="button" class="btn btn-l block" data-act="olvide" style="min-height:52px">Se me olvidó la clave</button>' : ''}
   </form>`;
 }
 document.addEventListener('submit', async e => {
@@ -1523,6 +1524,11 @@ async function arrancar() {
   try { const r = await sb.rpc('negocio_por_subdominio', { p_subdominio: subdominio() }); NEG_PUBLICO = r.data || null; } catch (e) { NEG_PUBLICO = null; }
   if (ES_PANEL()) { NEG_PUBLICO = null; document.title = 'Panel de Líderes Locales'; }
   else if (NEG_PUBLICO) document.title = NEG_PUBLICO.nombre;
+  const enlace = (location.hash || '').match(/^#(invitacion|clave)=([\w-]+)/);
+  if (enlace && !ES_PANEL()) {
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+    return enlace[1] === 'invitacion' ? abrirInvitacion(enlace[2]) : abrirNuevaClave(enlace[2]);
+  }
   const pase = (location.hash || '').match(/^#soporte=([\w.-]+)/);
   if (pase && !ES_PANEL()) {
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
@@ -1556,6 +1562,7 @@ async function entrarCon(user) {
 async function abrirNegocio(neg) {
   CARGANDO = true; pantalla(cargandoHTML()); SES.modo = 'negocio';
   SES.negocio = neg; try { sessionStorage.setItem('mno-negocio', neg.id); } catch (e) { }
+  INVS = null;
   try {
     const { data: yo } = await sb.from('miembros').select('*').eq('negocio_id', neg.id).eq('user_id', SES.user.id);
     const m = (yo || [])[0];
@@ -1612,31 +1619,59 @@ function camposHTML() {
 }
 
 /* ---------- Usuarios y claves ---------- */
-let US = null;
+let US = null, INVS = null, INVSCARGA = false;
+function cargarInvs() {
+  if (INVSCARGA || !SES.negocio) return; INVSCARGA = true;
+  sb.from('invitaciones').select('id,nombre,correo,rol,enviada,vence').eq('negocio_id', SES.negocio.id).is('usada', null).eq('cancelada', false).order('enviada', { ascending: false })
+    .then(({ data, error }) => { INVSCARGA = false; INVS = error ? [] : (data || []); if (route() === 'mi-negocio' && !sheetFn) render(); });
+}
 function usuariosHTML() {
   if (!(ROL() === 'duena' || SES.admin)) return '';
+  if (INVS === null) cargarInvs();
   const L = (S.miembros || []).slice().sort((a, b) => (a.rol === 'dueno' ? -1 : 0) - (b.rol === 'dueno' ? -1 : 0));
+  const I = INVS || [], ahora = new Date();
   return `<div class="card" id="usuarios" style="display:flex;flex-direction:column;gap:6px"><span class="row start" style="gap:8px"><b>Usuarios y claves</b>${info('usuarios')}</span>
-    ${L.length ? L.map(m => `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:170px"><b style="font-size:15px">${esc(m.nombre)}${m.user_id === SES.user.id ? ' (tú)' : ''}</b><span class="small muted">Usuario: <b>${esc(m.usuario)}</b> · ${ROL_TXT[m.rol]}${m.telefono ? ' · WhatsApp ' + phoneFmt(m.telefono.slice(-10)) : ''}${m.activo ? '' : ' · <b style="color:var(--bad)">sin acceso</b>'}</span></span>
+    ${L.length ? L.map(m => `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:170px"><b style="font-size:15px">${esc(m.nombre)}${m.user_id === SES.user.id ? ' (tú)' : ''}</b><span class="small muted">Usuario: <b>${esc(m.usuario)}</b> · ${ROL_TXT[m.rol]}${m.correo ? ' · ' + esc(m.correo) : ''}${m.telefono ? ' · WhatsApp ' + phoneFmt(m.telefono.slice(-10)) : ''}${m.activo ? '' : ' · <b style="color:var(--bad)">sin acceso</b>'}</span></span>
       ${m.rol !== 'dueno' || SES.admin ? `<button type="button" class="btn btn-l xs" data-act="usOpen" data-id="${m.user_id}">${ic('edit', 16)}Cambiar</button>` : ''}</div>`).join('') : '<div class="empty">Todavía no hay usuarios.</div>'}
-    <button type="button" class="btn btn-l block" data-act="usNew">${ic('add', 18, 2.4)}Agregar usuario</button>
-    <span class="xs muted">Para entrar van a ${esc((SES.negocio && SES.negocio.subdominio ? SES.negocio.subdominio : 'flores') + '.lidereslocales.com')} y escriben su usuario y su clave.</span></div>`;
+    ${I.length ? `<div class="small strong" style="margin-top:6px">Invitaciones enviadas</div>
+    ${I.map(x => { const vencio = new Date(x.vence) < ahora;
+      return `<div class="list-item" style="flex-wrap:wrap"><span class="col" style="flex:1;gap:2px;min-width:170px"><b style="font-size:15px">${esc(x.nombre)}</b><span class="small muted">${esc(x.correo)} · ${ROL_TXT[x.rol]}</span><span class="xs ${vencio ? '' : 'muted'}" style="${vencio ? 'color:var(--bad);font-weight:700' : ''}">${vencio ? 'La invitación venció, mándasela otra vez' : 'Enviada el ' + fCorta(new Date(x.enviada)) + ' · todavía no ha entrado'}</span></span>
+      <span class="row" style="gap:6px;flex-wrap:wrap">${UI.invAsk === x.id ? `<button type="button" class="btn btn-d xs" data-act="invCancelarOk" data-id="${x.id}">Sí, cancelar</button><button type="button" class="btn btn-l xs" data-act="invNo">No</button>`
+        : `<button type="button" class="btn btn-l xs" data-act="invReenviar" data-id="${x.id}">${ic('mail', 16)}Mandar otra vez</button><button type="button" class="btn btn-l xs" data-act="invCancelar" data-id="${x.id}" aria-label="Cancelar la invitación">${ic('x', 16)}</button>`}</span></div>`; }).join('')}` : ''}
+    <button type="button" class="btn btn-p block" data-act="usNew">${ic('mail', 18)}Invitar a alguien</button>
+    <span class="xs muted">Para entrar van a ${esc((SES.negocio && SES.negocio.subdominio ? SES.negocio.subdominio : 'flores') + '.lidereslocales.com')} y escriben su usuario y su clave. Si se les olvida, tocan «Se me olvidó la clave» y les llega un correo.</span></div>`;
 }
 function usSheet() {
-  const u = US, nuevo = !u.user_id;
+  const u = US, nuevo = !u.user_id, porCorreo = u.modo !== 'clave';
   const roles = [...(SES.admin ? [['dueno', 'Dueño']] : []), ['secretaria', 'Secretaria'], ['empleado', 'Empleado']];
-  return `<div class="sheet-h"><h3>${nuevo ? 'Usuario nuevo' : 'Usuario de ' + esc(u.nombre)}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
-  ${nuevo ? `<div class="field"><label for="usN">Nombre</label><input class="inp" id="usN" value="${esc(u.nombre)}" placeholder="Nombre y apellido"></div>
-  <div class="field"><label for="usU">Usuario para entrar</label><input class="inp" id="usU" value="${esc(u.usuario)}" autocapitalize="none" placeholder="Ej: paola"><span class="xs muted">Solo letras y números, sin espacios. Es lo que va a escribir para entrar.</span></div>
+  const correoCampo = (lbl, ayuda) => `<div class="field"><label for="usM">${lbl}</label><input class="inp" id="usM" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc(u.correo || '')}" placeholder="nombre@correo.com"><span class="xs muted">${ayuda}</span></div>`;
+  const telCampo = `<div class="field"><label for="usT">Celular para WhatsApp (opcional)</label><input class="inp" id="usT" inputmode="tel" value="${esc(u.telefono ? phoneFmt(String(u.telefono).replace(/\D/g, '').slice(-10)) : '')}" placeholder="300 000 0000"><span class="xs muted">Desde este número podrá registrar ventas por WhatsApp.</span></div>`;
+  if (nuevo) return `<div class="sheet-h"><h3>${porCorreo ? 'Invitar a alguien' : 'Crear usuario y clave'}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <div class="field"><label for="usN">Nombre</label><input class="inp" id="usN" value="${esc(u.nombre)}" placeholder="Nombre y apellido"></div>
   <div class="small strong">¿Qué hace?</div>
   <div class="chips">${roles.map(([k, l]) => `<button type="button" class="chip ${u.rol === k ? 'on' : ''}" data-act="usRol" data-v="${k}">${l}</button>`).join('')}</div>
   <p class="small muted" style="margin:0">${u.rol === 'dueno' ? 'Ve todo el negocio, la plata y la configuración.' : u.rol === 'secretaria' ? 'Registra ventas, gastos, compras y clientes. No ve las ganancias.' : 'Registra sus ventas y ve lo que lleva ganado. Nada más.'}</p>
-  ${u.rol === 'empleado' ? `<div class="field"><label for="usE">¿Quién es en tu equipo?</label><select class="inp" id="usE"><option value="">Elige…</option>${S.empleados.map(e => `<option value="${e.id}" ${u.empleado_id === e.id ? 'selected' : ''}>${esc(e.nombre)} · ${esc(e.rol)}</option>`).join('')}</select>${S.empleados.length ? '' : '<span class="xs" style="color:var(--bad)">Primero agrégalo en «Equipo».</span>'}</div>` : ''}`
-  : `<p class="small muted" style="margin:0">Usuario: <b>${esc(u.usuario)}</b> · ${ROL_TXT[u.rol]}</p>`}
-  <div class="field"><label for="usC">${nuevo ? 'Clave' : 'Clave nueva'}</label><input class="inp" id="usC" type="text" autocomplete="new-password" placeholder="Mínimo 6 letras o números"><span class="xs muted">${nuevo ? 'Es una clave temporal: la primera vez que entre, la plataforma le pide poner su propia clave.' : 'Déjala vacía si no la quieres cambiar. Si la cambias, es temporal: al entrar pone la suya.'}</span></div>
-  <div class="field"><label for="usT">Celular para WhatsApp (opcional)</label><input class="inp" id="usT" inputmode="tel" value="${esc(u.telefono ? phoneFmt(String(u.telefono).slice(-10)) : '')}" placeholder="300 000 0000"><span class="xs muted">Desde este número podrá registrar ventas por WhatsApp.</span></div>
-  <button type="button" class="btn btn-p block" data-act="usSave" id="usBtn">${ic('check', 20, 2.6)}${nuevo ? 'Crear usuario' : 'Guardar'}</button>
-  ${!nuevo && u.user_id !== SES.user.id ? `<button type="button" class="btn ${u.activo ? 'btn-d' : 'btn-l'} block" data-act="usActivo">${u.activo ? 'Quitarle el acceso' : 'Devolverle el acceso'}</button>` : ''}`;
+  ${u.rol === 'empleado' ? `<div class="field"><label for="usE">¿Quién es en tu equipo?</label><select class="inp" id="usE"><option value="">Elige…</option>${S.empleados.map(e => `<option value="${e.id}" ${u.empleado_id === e.id ? 'selected' : ''}>${esc(e.nombre)} · ${esc(e.rol)}</option>`).join('')}</select>${S.empleados.length ? '' : '<span class="xs" style="color:var(--bad)">Primero agrégalo en «Equipo».</span>'}</div>` : ''}
+  ${porCorreo ? correoCampo('Su correo', 'Le llega un correo de Líderes Locales con un botón para que escoja su usuario y su clave.')
+  : `<div class="field"><label for="usU">Usuario para entrar</label><input class="inp" id="usU" value="${esc(u.usuario)}" autocapitalize="none" placeholder="Ej: paola"><span class="xs muted">Solo letras y números, sin espacios. Es lo que va a escribir para entrar.</span></div>
+  <div class="field"><label for="usC">Clave</label><input class="inp" id="usC" type="text" autocomplete="new-password" placeholder="Mínimo 6 letras o números"><span class="xs muted">Es una clave temporal: la primera vez que entre, la plataforma le pide poner su propia clave.</span></div>`}
+  ${telCampo}
+  ${porCorreo ? `<button type="button" class="btn btn-p block" data-act="usInvitar" id="usBtn">${ic('mail', 20)}Enviar invitación</button>
+  <button type="button" class="btn btn-l block" data-act="usModo" data-v="clave" style="font-size:14px">¿No tiene correo? Créale tú el usuario y la clave</button>`
+  : `<button type="button" class="btn btn-p block" data-act="usSave" id="usBtn">${ic('check', 20, 2.6)}Crear usuario</button>
+  <button type="button" class="btn btn-l block" data-act="usModo" data-v="correo" style="font-size:14px">Mejor enviarle una invitación por correo</button>`}`;
+  return `<div class="sheet-h"><h3>Usuario de ${esc(u.nombre)}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <p class="small muted" style="margin:0">Usuario: <b>${esc(u.usuario)}</b> · ${ROL_TXT[u.rol]}</p>
+  ${correoCampo('Correo (para recuperar la clave)', 'Si se le olvida la clave, le llega un enlace a este correo.')}
+  <div class="field"><label for="usC">Clave nueva</label><input class="inp" id="usC" type="text" autocomplete="new-password" placeholder="Mínimo 6 letras o números"><span class="xs muted">Déjala vacía si no la quieres cambiar. Si la cambias, es temporal: al entrar pone la suya.</span></div>
+  ${telCampo}
+  <button type="button" class="btn btn-p block" data-act="usSave" id="usBtn">${ic('check', 20, 2.6)}Guardar</button>
+  ${u.user_id !== SES.user.id ? `<button type="button" class="btn ${u.activo ? 'btn-d' : 'btn-l'} block" data-act="usActivo">${u.activo ? 'Quitarle el acceso' : 'Devolverle el acceso'}</button>` : ''}`;
+}
+// Guarda lo escrito antes de volver a dibujar la ventana
+function usLeer() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  [['usN', 'nombre'], ['usU', 'usuario'], ['usM', 'correo'], ['usT', 'telefono'], ['usE', 'empleado_id']].forEach(([id, k]) => { const v = g(id); if (v !== null) US[k] = v; });
 }
 
 /* ---------- Panel de Líderes Locales (administrador) ---------- */
@@ -1726,12 +1761,42 @@ const SB_ACT = {
     const { error } = await sb.from('campos').update({ candado: c.candado }).eq('negocio_id', SES.negocio.id).eq('clave', id);
     if (error) { toast('No se pudo cambiar: ' + errTxt(error)); recargarConfig(); }
   },
-  usNew: () => { US = { nombre: '', usuario: '', rol: SES.admin && !(S.miembros || []).some(m => m.rol === 'dueno') ? 'dueno' : 'secretaria', empleado_id: '', telefono: '', activo: true }; openSheet(usSheet); },
+  usNew: () => { US = { nombre: '', usuario: '', correo: '', modo: 'correo', rol: SES.admin && !(S.miembros || []).some(m => m.rol === 'dueno') ? 'dueno' : 'secretaria', empleado_id: '', telefono: '', activo: true }; openSheet(usSheet); },
   usOpen: (el, id) => { const m = (S.miembros || []).find(x => x.user_id === id); if (!m) return; US = { ...m }; openSheet(usSheet); },
-  usRol: (el, id, v) => { US.nombre = (document.getElementById('usN') || {}).value || US.nombre; US.usuario = (document.getElementById('usU') || {}).value || US.usuario; US.rol = v; drawSheet(); },
+  usRol: (el, id, v) => { usLeer(); US.rol = v; drawSheet(); },
+  usModo: (el, id, v) => { usLeer(); US.modo = v; drawSheet(); },
+  usInvitar: async () => {
+    usLeer();
+    const nombre = String(US.nombre || '').trim(), correo = String(US.correo || '').trim().toLowerCase(), tel = String(US.telefono || '').replace(/\D/g, ''), emp = US.rol === 'empleado' ? US.empleado_id : '';
+    if (!nombre) return toast('Escribe el nombre');
+    if (!CORREO_OK(correo)) return toast('Revisa el correo, parece que está mal escrito');
+    if (US.rol === 'empleado' && !emp) return toast('Elige quién es en tu equipo');
+    const btn = document.getElementById('usBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    const r = await llamarCuentas({ accion: 'invitar', negocio: SES.negocio.id, nombre, correo, rol: US.rol, telefono: tel || null, empleado_id: emp || null });
+    INVS = null;
+    if (r.error) { if (r.guardada) { closeSheet(); render(); } else if (btn) { btn.disabled = false; btn.innerHTML = `${ic('mail', 20)}Enviar invitación`; } return toast(r.error); }
+    closeSheet(); render();
+    openSheet(() => `<div class="sheet-h"><h3>Invitación enviada</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+      <p style="margin:0;font-size:16px;line-height:1.5">Le llegó un correo a <b>${esc(correo)}</b> para que ${esc(primerNom(nombre))} escoja su usuario y su clave.</p>
+      <p class="small muted" style="margin:0;line-height:1.5">Dile que busque un correo de Líderes Locales, y si no lo ve, que mire en «Correo no deseado» o «Spam». El enlace sirve por 7 días; si se le vence, aquí le mandas otro.</p>
+      <button type="button" class="btn btn-p block" data-act="close">Entendido</button>`);
+  },
+  invReenviar: async (el, id) => {
+    el.disabled = true; el.textContent = 'Enviando…';
+    const r = await llamarCuentas({ accion: 'reenviar', id });
+    INVS = null; render();
+    toast(r.error ? 'No se pudo mandar: ' + r.error : 'Listo, le mandamos la invitación otra vez');
+  },
+  invCancelar: (el, id) => { UI.invAsk = id; render(); },
+  invNo: () => { UI.invAsk = null; render(); },
+  invCancelarOk: async (el, id) => {
+    UI.invAsk = null;
+    const { error } = await sb.rpc('invitacion_cancelar', { p_id: id });
+    INVS = null; render(); toast(error ? 'No se pudo cancelar: ' + errTxt(error) : 'Invitación cancelada: ese enlace ya no sirve');
+  },
   usSave: async () => {
     const g = id => (document.getElementById(id) || {}).value || '';
-    const clave = g('usC').trim(), tel = g('usT').replace(/\D/g, ''), btn = document.getElementById('usBtn');
+    const clave = g('usC').trim(), tel = g('usT').replace(/\D/g, ''), correo = g('usM').trim().toLowerCase(), btn = document.getElementById('usBtn');
     if (!US.user_id) {
       const nombre = g('usN').trim(), usuario = limpiarUsuario(g('usU')), emp = US.rol === 'empleado' ? g('usE') : '';
       if (!nombre) return toast('Escribe el nombre'); if (!usuario) return toast('Escribe el usuario, solo letras y números');
@@ -1750,7 +1815,10 @@ const SB_ACT = {
     }
     btn.disabled = true;
     if (clave) { if (clave.length < 6) { btn.disabled = false; return toast('La clave debe tener al menos 6 letras o números'); } const r = await sb.rpc('cambiar_clave', { p_negocio: SES.negocio.id, p_user: US.user_id, p_clave: clave }); if (r.error) { btn.disabled = false; return toast('No se pudo cambiar la clave: ' + errTxt(r.error)); } }
-    if (tel !== String(US.telefono || '')) { const r = await sb.from('miembros').update({ telefono: tel || null }).eq('negocio_id', SES.negocio.id).eq('user_id', US.user_id); if (r.error) { btn.disabled = false; return toast('No se pudo guardar: ' + errTxt(r.error)); } }
+    const cambios = {};
+    if (tel !== String(US.telefono || '')) cambios.telefono = tel || null;
+    if (correo !== String(US.correo || '')) { if (correo && !CORREO_OK(correo)) { btn.disabled = false; return toast('Revisa el correo, parece que está mal escrito'); } cambios.correo = correo || null; }
+    if (Object.keys(cambios).length) { const r = await sb.from('miembros').update(cambios).eq('negocio_id', SES.negocio.id).eq('user_id', US.user_id).select(); if (r.error || !r.data || !r.data.length) { btn.disabled = false; return toast('No se pudo guardar: ' + errTxt(r.error || 'sin permiso')); } }
     await recargarMiembros(); closeSheet(); render(); toast(clave ? 'Clave cambiada' : 'Guardado');
   },
   usActivo: async () => {
@@ -2566,7 +2634,7 @@ function empEditSheet() {
   ${e.tipo === 'dia' ? `<div class="fgrid">${f('valorDia', 'Valor por día', e.valorDia)}</div>` : ''}
   ${e.tipo === 'producto' ? `<p class="small muted" style="margin:0">Se le paga lo que diga cada producto en «Mano de obra», por ejemplo ${money(8000)} por un Ramo Pasión. Se suma solo cuando lo eligen en «¿Quién lo hizo?».</p>` : ''}
   ${e.tipo === 'mixto' ? `<div class="fgrid">${f('base', 'Base mensual', e.base)}${f('valorProducto', 'Valor por arreglo', e.valorProducto)}<div class="field"><label for="ed-diaPago2">Día de pago</label><input class="inp num" id="ed-diaPago2" data-in="edT" data-k="diaPago" inputmode="numeric" value="${e.diaPago || 30}"></div></div>` : ''}
-  <div class="small" data-tour="edAcceso" style="background:var(--soft);border-radius:12px;padding:10px 12px;line-height:1.5"><b>¿Va a entrar a la plataforma?</b> Créale su usuario y su clave en «Mi negocio → Usuarios y claves». Nunca va a ver la ganancia del negocio.</div>
+  <div class="small" data-tour="edAcceso" style="background:var(--soft);border-radius:12px;padding:10px 12px;line-height:1.5"><b>¿Va a entrar a la plataforma?</b> Invítalo con su correo en «Mi negocio → Usuarios y claves». Nunca va a ver la ganancia del negocio.</div>
   <div class="row" style="gap:10px"><button type="button" class="btn btn-p" style="flex:2" data-act="edSave" data-tour="edSave">${ic('check', 20, 2.6)}Guardar</button>${!e.isNew ? `<button type="button" class="btn btn-d" style="flex:1" data-act="edDel">Quitar</button>` : ''}</div>`;
 }
 
@@ -2783,7 +2851,7 @@ VIEWS['mi-negocio'] = () => {
   ${usuariosHTML()}
   <a class="card row" href="#auditoria" style="text-decoration:none;color:inherit;flex-wrap:wrap"><span class="col" style="flex:1;min-width:200px;gap:2px"><b>Auditoría</b><span class="small muted">Quién hizo cada cambio, y deshacer si alguien se equivocó.</span></span><span class="btn btn-l sm">Ver</span></a>
   ${respaldoHTML()}
-  ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Cambiar mi clave</button>` : ''}
+  ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Mi clave y mi correo</button>` : ''}
   <button type="button" class="btn btn-l block" data-act="salir">${ic('logout', 18)}Salir de la plataforma</button>`;
 };
 
@@ -3214,33 +3282,184 @@ const INV_ACT = {
    Clave propia: la primera vez que entra, cada persona pone su clave
    ========================================================= */
 let CLAVE_NEG = null;
+const CORREO_OK = c => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c || '').trim());
+const miMiembro = () => (S.miembros || []).find(m => SES.user && m.user_id === SES.user.id) || null;
+const verBtn = '<button type="button" class="btn btn-l sm" data-act="verClaves" aria-label="Ver la clave">Ver</button>';
 const claveNuevaHTML = msg => `<form class="login-card" id="fClave" autocomplete="off">
   <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('lock', 32)}</span>
   <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">Pon tu propia clave</h1><p class="muted" style="margin:6px 0 0;font-size:16px;line-height:1.45">Es la primera vez que entras con esta clave. Escoge una que solo tú sepas, de al menos 6 letras o números.</p></div>
-  <div class="field"><label for="ncA">Tu clave nueva</label><input class="inp" id="ncA" type="password" autocomplete="new-password" style="font-size:18px"></div>
-  <div class="field"><label for="ncB">Escríbela otra vez</label><input class="inp" id="ncB" type="password" autocomplete="new-password" style="font-size:18px"></div>
+  <div class="field"><label for="ncA">Tu clave nueva</label><div class="row" style="gap:8px"><input class="inp" id="ncA" data-clave type="password" autocomplete="new-password" style="font-size:18px;flex:1">${verBtn}</div></div>
+  <div class="field"><label for="ncB">Escríbela otra vez</label><input class="inp" id="ncB" data-clave type="password" autocomplete="new-password" style="font-size:18px"></div>
+  <div class="field"><label for="ncC">Tu correo (opcional)</label><input class="inp" id="ncC" type="email" inputmode="email" autocapitalize="none" placeholder="tu@correo.com" style="font-size:18px"><span class="xs muted">Si algún día se te olvida la clave, te llega un enlace a este correo para poner una nueva.</span></div>
   <div id="ncMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
   <button type="submit" class="btn btn-p block" id="ncBtn" style="min-height:58px;font-size:18px">Guardar y entrar</button>
   <button type="button" class="btn btn-l block" data-act="salir">Salir</button>
 </form>`;
 document.addEventListener('submit', async e => {
   if (e.target.id !== 'fClave') return; e.preventDefault();
-  const a = document.getElementById('ncA').value, b = document.getElementById('ncB').value, msg = document.getElementById('ncMsg'), btn = document.getElementById('ncBtn');
+  const a = document.getElementById('ncA').value, b = document.getElementById('ncB').value, c = document.getElementById('ncC').value.trim(), msg = document.getElementById('ncMsg'), btn = document.getElementById('ncBtn');
   if (a.length < 6) { msg.textContent = 'La clave debe tener al menos 6 letras o números'; return; }
   if (a !== b) { msg.textContent = 'Las dos claves no son iguales. Escríbelas otra vez.'; return; }
+  if (c && !CORREO_OK(c)) { msg.textContent = 'Revisa el correo, parece que está mal escrito. Si no tienes, déjalo vacío.'; return; }
   btn.disabled = true; btn.textContent = 'Guardando…';
   const { error } = await sb.rpc('cambiar_mi_clave', { p_clave: a });
   if (error) { btn.disabled = false; btn.textContent = 'Guardar y entrar'; msg.textContent = errTxt(error); return; }
+  if (c) { try { await sb.rpc('guardar_mi_correo', { p_correo: c }); } catch (e2) { } }
   const neg = CLAVE_NEG; CLAVE_NEG = null; await abrirNegocio(neg);
   toast('Listo, ya tienes tu propia clave');
 });
-const miClaveSheet = () => `<div class="sheet-h"><h3>Cambiar mi clave</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+const miClaveSheet = () => { const yo = miMiembro(); return `<div class="sheet-h"><h3>Mi clave y mi correo</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  ${yo ? `<div class="field"><label for="mcC">Mi correo</label><input class="inp" id="mcC" type="email" inputmode="email" autocapitalize="none" value="${esc(yo.correo || '')}" placeholder="tu@correo.com"><span class="xs muted">Si se te olvida la clave, te llega un enlace a este correo para poner una nueva.</span></div>
+  <button type="button" class="btn btn-l block" data-act="miCorreoOk" id="mcCBtn">${ic('mail', 18)}Guardar mi correo</button>
+  <div class="sect" style="margin:6px 0 0">Cambiar mi clave</div>` : ''}
   <p class="small muted" style="margin:0">Escoge una clave que solo tú sepas, de al menos 6 letras o números.</p>
-  <div class="field"><label for="mcA">Clave nueva</label><input class="inp" id="mcA" type="password" autocomplete="new-password"></div>
-  <div class="field"><label for="mcB">Escríbela otra vez</label><input class="inp" id="mcB" type="password" autocomplete="new-password"></div>
-  <button type="button" class="btn btn-p block" data-act="miClaveOk" id="mcBtn">${ic('lock', 18)}Guardar mi clave</button>`;
+  <div class="field"><label for="mcA">Clave nueva</label><div class="row" style="gap:8px"><input class="inp" id="mcA" data-clave type="password" autocomplete="new-password" style="flex:1">${verBtn}</div></div>
+  <div class="field"><label for="mcB">Escríbela otra vez</label><input class="inp" id="mcB" data-clave type="password" autocomplete="new-password"></div>
+  <button type="button" class="btn btn-p block" data-act="miClaveOk" id="mcBtn">${ic('lock', 18)}Guardar mi clave</button>`; };
+
+/* =========================================================
+   Correos: invitación, «Se me olvidó la clave» y clave nueva
+   (los manda la Edge Function «cuentas» por Resend)
+   ========================================================= */
+async function llamarCuentas(body) {
+  try {
+    const { data, error } = await sb.functions.invoke('cuentas', { body });
+    if (!error) return { data: data || {} };
+    const ctx = error.context;
+    if (ctx && ctx.status === 404) return { error: 'Falta crear la función «cuentas» en Supabase' };
+    try { const j = await ctx.json(); if (j && j.error) return { error: j.error, guardada: !!j.guardada }; } catch (e) { }
+    if (/Failed to send|fetch|network/i.test(error.message || '')) return { error: 'No hay conexión a internet. Intenta otra vez.' };
+    return { error: errTxt(error) };
+  } catch (e) { return { error: errTxt(e) }; }
+}
+const primerNom = n => String(n || '').trim().split(/\s+/)[0] || '';
+// Tarjeta de aviso con botones para seguir: 'entrar' y/o 'olvide'
+const avisoHTML = (icono, titulo, texto, botones) => `<div class="login-card">
+  <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic(icono, 32)}</span>
+  <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">${titulo}</h1><p class="muted" style="margin:8px 0 0;font-size:16px;line-height:1.5">${texto}</p></div>
+  ${(botones || []).map((b, i) => b === 'entrar' ? `<button type="button" class="btn ${i ? 'btn-l' : 'btn-p'} block" data-act="volverEntrar" style="min-height:56px;font-size:18px">Ir a entrar</button>`
+    : `<button type="button" class="btn ${i ? 'btn-l' : 'btn-p'} block" data-act="olvide" style="min-height:56px;font-size:18px">Pedir un enlace nuevo</button>`).join('')}
+</div>`;
+
+// --- Invitación: la persona escoge su usuario y su clave
+let INVTOK = null, INVDATA = null;
+async function abrirInvitacion(tok) {
+  INVTOK = tok; pantalla(cargandoHTML('Abriendo tu invitación…'));
+  const { data, error } = await sb.rpc('invitacion_ver', { p_token: tok });
+  if (error) { pantalla(avisoHTML('alert', 'No se pudo abrir la invitación', esc(errTxt(error)) + '. Vuelve a tocar el botón del correo.', ['entrar'])); return; }
+  INVDATA = data || { estado: 'no' }; pantalla(invitacionHTML());
+}
+function invitacionHTML(msg) {
+  const d = INVDATA || { estado: 'no' };
+  if (d.estado === 'usada') return avisoHTML('check', 'Esta invitación ya se usó', 'Ya creaste tu entrada. Entra con tu usuario y tu clave.', ['entrar', 'olvide']);
+  if (d.estado === 'vencida') return avisoHTML('cal', 'Esta invitación ya venció', `Los enlaces sirven por 7 días. Pídele a ${esc(d.quien || 'quien te invitó')} que te la mande otra vez.`, ['entrar']);
+  if (d.estado !== 'ok') return avisoHTML('lock', 'Este enlace ya no sirve', 'Puede que te hayan mandado una invitación más nueva. Busca el último correo de Líderes Locales o pide que te la manden otra vez.', ['entrar']);
+  const quien = d.quien && d.quien !== 'Sistema' ? d.quien : 'Líderes Locales';
+  return `<form class="login-card" id="fInv" autocomplete="on">
+    <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('flower', 32)}</span>
+    <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">Hola, ${esc(primerNom(d.nombre))}</h1><p class="muted" style="margin:8px 0 0;font-size:16px;line-height:1.5">${esc(quien)} te invitó a la plataforma de <b>${esc(d.negocio)}</b>. Escoge con qué usuario y qué clave vas a entrar.</p></div>
+    <div class="field"><label for="ivU">Tu usuario</label><input class="inp" id="ivU" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc(d.usuario || '')}" style="font-size:18px"><span class="xs muted">Es la palabra que vas a escribir para entrar, solo letras y números. Te sugerimos esta, pero la puedes cambiar.</span></div>
+    <div class="field"><label for="ivA">Tu clave</label><div class="row" style="gap:8px"><input class="inp" id="ivA" data-clave type="password" autocomplete="new-password" placeholder="Mínimo 6 letras o números" style="font-size:18px;flex:1">${verBtn}</div></div>
+    <div class="field"><label for="ivB">Escríbela otra vez</label><input class="inp" id="ivB" data-clave type="password" autocomplete="new-password" style="font-size:18px"></div>
+    <div id="ivMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
+    <button type="submit" class="btn btn-p block" id="ivBtn" style="min-height:58px;font-size:18px">Crear mi entrada</button>
+    <p class="xs muted" style="margin:0;text-align:center">Anota tu usuario y tu clave en un lugar seguro.</p>
+  </form>`;
+}
+
+// --- Se me olvidó la clave
+const olvideHTML = msg => `<form class="login-card" id="fOlvide" autocomplete="on">
+  <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('lock', 32)}</span>
+  <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">¿Se te olvidó la clave?</h1><p class="muted" style="margin:8px 0 0;font-size:16px;line-height:1.5">No pasa nada. Escribe tu usuario o tu correo y te mandamos un enlace para poner una clave nueva.</p></div>
+  <div class="field"><label for="olU">Tu usuario o tu correo</label><input class="inp" id="olU" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Ej: marta" style="font-size:18px"></div>
+  <div id="olMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
+  <button type="submit" class="btn btn-p block" id="olBtn" style="min-height:58px;font-size:18px">${ic('mail', 20)}Enviarme el correo</button>
+  <button type="button" class="btn btn-l block" data-act="volverEntrar">Volver</button>
+</form>`;
+const olvideListoHTML = () => avisoHTML('mail', 'Listo, revisa tu correo', 'Si tu usuario tiene un correo guardado, te acabamos de mandar un mensaje de Líderes Locales con un enlace. Búscalo también en «Correo no deseado» o «Spam».<br><br>Si no te llega en unos minutos, pídele a la dueña del negocio o a Líderes Locales que te cambie la clave.', ['entrar']);
+
+// --- Clave nueva (desde el enlace del correo)
+let RECTOK = null, RECDATA = null;
+async function abrirNuevaClave(tok) {
+  RECTOK = tok; pantalla(cargandoHTML('Abriendo…'));
+  const { data, error } = await sb.rpc('recuperacion_ver', { p_token: tok });
+  if (error) { pantalla(avisoHTML('alert', 'No se pudo abrir el enlace', esc(errTxt(error)) + '. Vuelve a tocar el botón del correo.', ['entrar'])); return; }
+  RECDATA = data || { estado: 'no' }; pantalla(nuevaClaveHTML());
+}
+function nuevaClaveHTML(msg) {
+  const d = RECDATA || { estado: 'no' };
+  if (d.estado === 'usada') return avisoHTML('lock', 'Este enlace ya se usó', 'Si ya pusiste tu clave nueva, entra con ella. Si no la recuerdas, pide otro enlace.', ['entrar', 'olvide']);
+  if (d.estado === 'vencida') return avisoHTML('cal', 'Este enlace ya venció', 'Los enlaces para cambiar la clave sirven por 2 horas. Pide uno nuevo, es rápido.', ['olvide', 'entrar']);
+  if (d.estado !== 'ok') return avisoHTML('lock', 'Este enlace no sirve', 'Puede que hayas pedido otro más nuevo. Usa el último correo que te llegó, o pide uno nuevo.', ['olvide', 'entrar']);
+  return `<form class="login-card" id="fNueva" autocomplete="on">
+    <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('lock', 32)}</span>
+    <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">Pon tu clave nueva</h1><p class="muted" style="margin:8px 0 0;font-size:16px;line-height:1.5">Hola, ${esc(primerNom(d.nombre))}. Tu usuario es <b>${esc(d.usuario)}</b>.</p></div>
+    <input type="text" name="username" autocomplete="username" value="${esc(d.usuario)}" hidden>
+    <div class="field"><label for="nvA">Tu clave nueva</label><div class="row" style="gap:8px"><input class="inp" id="nvA" data-clave type="password" autocomplete="new-password" placeholder="Mínimo 6 letras o números" style="font-size:18px;flex:1">${verBtn}</div></div>
+    <div class="field"><label for="nvB">Escríbela otra vez</label><input class="inp" id="nvB" data-clave type="password" autocomplete="new-password" style="font-size:18px"></div>
+    <div id="nvMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
+    <button type="submit" class="btn btn-p block" id="nvBtn" style="min-height:58px;font-size:18px">Guardar y entrar</button>
+  </form>`;
+}
+
+document.addEventListener('submit', async e => {
+  const id = e.target.id;
+  if (!['fInv', 'fOlvide', 'fNueva'].includes(id)) return; e.preventDefault();
+  const v = x => (document.getElementById(x) || {}).value || '';
+  if (id === 'fInv') {
+    const msg = document.getElementById('ivMsg'), btn = document.getElementById('ivBtn');
+    const u = limpiarUsuario(v('ivU')), a = v('ivA'), b = v('ivB');
+    if (u.length < 3) { msg.textContent = 'El usuario debe tener al menos 3 letras o números'; return; }
+    if (a.length < 6) { msg.textContent = 'La clave debe tener al menos 6 letras o números'; return; }
+    if (a !== b) { msg.textContent = 'Las dos claves no son iguales. Escríbelas otra vez.'; return; }
+    btn.disabled = true; btn.textContent = 'Creando tu entrada…'; msg.textContent = '';
+    const r = await llamarCuentas({ accion: 'aceptar', token: INVTOK, usuario: u, clave: a });
+    if (r.error) { btn.disabled = false; btn.textContent = 'Crear mi entrada'; msg.textContent = r.error; return; }
+    INVTOK = null;
+    const { data, error } = await sb.auth.signInWithPassword({ email: r.data.email, password: a });
+    if (error) { pantalla(entrarHTML(`Tu entrada quedó lista. Entra con tu usuario «${r.data.usuario}» y tu clave.`)); return; }
+    await entrarCon(data.user);
+    toast(`Listo, ya tienes tu entrada. Tu usuario es «${r.data.usuario}»`);
+  }
+  if (id === 'fOlvide') {
+    const msg = document.getElementById('olMsg'), btn = document.getElementById('olBtn'), dato = v('olU').trim();
+    if (!dato) { msg.textContent = 'Escribe tu usuario o tu correo'; return; }
+    btn.disabled = true; btn.textContent = 'Enviando…'; msg.textContent = '';
+    const r = await llamarCuentas({ accion: 'recuperar', negocio: subdominio(), dato });
+    if (r.error) { btn.disabled = false; btn.innerHTML = `${ic('mail', 20)}Enviarme el correo`; msg.textContent = r.error; return; }
+    pantalla(olvideListoHTML());
+  }
+  if (id === 'fNueva') {
+    const msg = document.getElementById('nvMsg'), btn = document.getElementById('nvBtn'), a = v('nvA'), b = v('nvB');
+    if (a.length < 6) { msg.textContent = 'La clave debe tener al menos 6 letras o números'; return; }
+    if (a !== b) { msg.textContent = 'Las dos claves no son iguales. Escríbelas otra vez.'; return; }
+    btn.disabled = true; btn.textContent = 'Guardando…'; msg.textContent = '';
+    const { data: r, error } = await sb.rpc('recuperacion_usar', { p_token: RECTOK, p_clave: a });
+    if (error) { btn.disabled = false; btn.textContent = 'Guardar y entrar'; msg.textContent = errTxt(error); return; }
+    RECTOK = null;
+    if (!NEG_PUBLICO) { pantalla(entrarHTML('Tu clave quedó cambiada. Entra con ella.')); return; }
+    const s2 = await sb.auth.signInWithPassword({ email: correoDe(r.usuario, NEG_PUBLICO.slug), password: a });
+    if (s2.error) { pantalla(entrarHTML(`Tu clave quedó cambiada. Entra con tu usuario «${r.usuario}».`)); return; }
+    await entrarCon(s2.data.user);
+    toast('Listo, tu clave quedó cambiada');
+  }
+});
+
 const CLAVE_ACT = {
   miClave: () => openSheet(miClaveSheet),
+  verClaves: el => { const f = el.closest('form') || el.closest('.sheet') || document; f.querySelectorAll('input[data-clave]').forEach(i => { i.type = i.type === 'password' ? 'text' : 'password'; }); el.textContent = el.textContent === 'Ver' ? 'Ocultar' : 'Ver'; },
+  olvide: () => pantalla(olvideHTML()),
+  volverEntrar: () => pantalla(entrarHTML()),
+  miCorreoOk: async () => {
+    const c = (document.getElementById('mcC') || {}).value.trim();
+    if (!CORREO_OK(c)) return toast('Revisa el correo, parece que está mal escrito');
+    const btn = document.getElementById('mcCBtn'); if (btn) btn.disabled = true;
+    const { error } = await sb.rpc('guardar_mi_correo', { p_correo: c });
+    if (btn) btn.disabled = false;
+    if (error) return toast('No se pudo guardar: ' + errTxt(error));
+    (S.miembros || []).forEach(m => { if (m.user_id === SES.user.id) m.correo = c.toLowerCase(); });
+    toast('Listo, tu correo quedó guardado');
+  },
   miClaveOk: async () => {
     const a = document.getElementById('mcA').value, b = document.getElementById('mcB').value;
     if (a.length < 6) return toast('La clave debe tener al menos 6 letras o números');
@@ -3257,7 +3476,7 @@ const CLAVE_ACT = {
    ========================================================= */
 let AUD = null, AUDCARGA = false, AUDFIN = false;
 const AUD_TIPOS = [['todo', 'Todo'], ['ventas', 'Ventas'], ['gastos', 'Gastos y compras'], ['productos', 'Productos y precios'], ['inventario', 'Inventario'], ['usuarios', 'Usuarios y claves'], ['clientes', 'Clientes'], ['equipo', 'Equipo'], ['ajustes', 'Ajustes']];
-const audTipo = t => ({ ventas: 'ventas', gastos: 'gastos', gastos_fijos: 'gastos', compras: 'gastos', productos: 'productos', insumos: 'productos', movimientos: 'inventario', miembros: 'usuarios', claves: 'usuarios', clientes: 'clientes', empleados: 'equipo' })[t] || 'ajustes';
+const audTipo = t => ({ ventas: 'ventas', gastos: 'gastos', gastos_fijos: 'gastos', compras: 'gastos', productos: 'productos', insumos: 'productos', movimientos: 'inventario', miembros: 'usuarios', claves: 'usuarios', invitaciones: 'usuarios', clientes: 'clientes', empleados: 'equipo' })[t] || 'ajustes';
 const AUD_DESHACE = ['ventas', 'productos', 'insumos', 'clientes', 'gastos', 'gastos_fijos', 'compras', 'empleados', 'funciones', 'campos', 'ajustes'];
 async function cargarAud(mas) {
   if (AUDCARGA) return; AUDCARGA = true;
@@ -3307,7 +3526,7 @@ const ACT = {
   info: (el, id) => showInfo(el, id),
   more: () => openSheet(() => `<div class="sheet-h"><h3>Más opciones</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
     <div class="card" style="padding:4px 16px">${navAgrupado(navFor().filter(n => !n.main && !n.oculto), n => `<button type="button" class="list-item clickable" data-act="closeGo" data-id="${n.id}"><span class="thumb t-mix">${ic(n.icon, 22)}</span><b style="flex:1">${n.label}</b></button>`)}</div>
-    ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Cambiar mi clave</button>` : ''}
+    ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Mi clave y mi correo</button>` : ''}
     <button type="button" class="btn btn-l block" data-act="salir">${ic('logout', 18)}Salir</button>`),
   close: () => { if (RET) { PD = RET.pd; PD.receta = PD.receta.filter(r => insumo(r.iid)); RET = null; openSheet(prodSheet); return; } closeSheet(); },
   scrim: (el, id, v, e) => { if (e.target === el && !sheetLock) ACT.close(); },

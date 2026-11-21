@@ -371,6 +371,14 @@ const GUIAS = {
     'En «Precios y ganancia» eliges cuánto quieres que te quede de cada arreglo (mínimo 30%).',
     'En «Usuarios y claves» creas la entrada de tu secretaria o tu equipo.',
     'Si te equivocas en algo, en «Historial» lo puedes deshacer.'] }),
+  inventario: () => ({ t: 'Aquí ves cuánto tienes de cada flor e insumo y a qué precio lo compraste.', p: [
+    'La primera vez, toca «Empezar el conteo» y escribe lo que tienes hoy.',
+    'Cada compra suma flores nuevas y cada venta gasta primero las más viejas. Si un arreglo lleva viejas y nuevas, cada parte se cobra a su precio.',
+    'Si se dañan flores, tócalo en «Se dañaron flores». Si algo no cuadra, «Contar de nuevo».'] }),
+  auditoria: () => ({ t: 'Aquí ves quién hizo cada cambio: ventas, gastos, precios, inventario y usuarios.', p: [
+    'Toca un nombre para ver solo lo que hizo esa persona.',
+    'Toca un tipo, como «Ventas» o «Inventario», para ver solo eso.',
+    'Si alguien se equivocó, toca «Deshacer» en ese cambio.'] }),
   funciones: () => ({ t: 'Prende solo lo que usa tu negocio, así la plataforma se ve más sencilla.', p: [
     'Toca el interruptor para prender o apagar una parte.',
     'Lo que tiene candado lo maneja Líderes Locales.'] })
@@ -881,9 +889,11 @@ const NAV = [
   { id: 'clientes', label: 'Clientes', icon: 'users', roles: ['duena', 'secretaria'], mod: 'clientes', g: 'Tu negocio' },
   { id: 'productos', label: 'Productos y precios', icon: 'flower', roles: ['duena', 'secretaria'], g: 'Tu negocio' },
   { id: 'compras', label: 'Compras de flores', icon: 'cart', roles: ['duena', 'secretaria'], mod: 'compras', g: 'Tu negocio' },
+  { id: 'inventario', label: 'Inventario', icon: 'box', roles: ['duena', 'secretaria'], mod: 'inventario', g: 'Tu negocio' },
   { id: 'equipo', label: 'Equipo', icon: 'team', roles: ['duena'], mod: 'equipo', g: 'Tu negocio' },
   { id: 'mi-negocio', label: 'Mi negocio', icon: 'sliders', roles: ['duena'], g: 'Ajustes' },
   { id: 'funciones', label: 'Funcionalidades', icon: 'grid', roles: ['duena'], g: 'Ajustes' },
+  { id: 'auditoria', label: 'Auditoría', icon: 'lock', roles: ['duena'], g: 'Ajustes' },
   { id: 'guia', label: 'Guía', icon: 'help', roles: ['duena', 'secretaria', 'florista'], g: 'Ajustes' }
 ];
 // Agrupa los elementos del menú con su título de grupo
@@ -1029,6 +1039,7 @@ const FUNCS = [
     { k: 'domicilios', t: 'Cobro de domicilio', d: 'Anota lo que cobras por llevar el pedido. No paga comisión.' },
     { k: 'abonos', t: 'Abonos y saldos por cobrar', d: 'Si el cliente deja un abono, te recuerda cuánto falta por cobrar.' },
     { k: 'compras', t: 'Compras de flores e insumos', d: 'Registra lo que compras y actualiza solo el costo de tus arreglos.' },
+    { k: 'inventario', t: 'Inventario', d: 'Lleva cuánto tienes de cada flor e insumo. Cada venta gasta primero las flores más viejas, a su precio.' },
     { k: 'gastos', t: 'Gastos fijos y del día', d: 'Arriendo, servicios, gasolina y bolsas, para ver tu ganancia real.' }
   ] },
   { g: 'Personas', items: [
@@ -1333,6 +1344,7 @@ async function sincronizarYa() {
       }
       if (borrados.length) { const { error } = await sb.from(m.tabla).delete().eq('negocio_id', neg).in('id', borrados); if (error) throw error; }
       SNAP[k] = now;
+      if ((k === 'ventas' || k === 'compras') && (nuevos.length || cambiados.length || borrados.length)) INV = null;
     }
     if (ROL() === 'duena') {
       const j = cfgJSON();
@@ -1537,6 +1549,8 @@ async function entrarCon(user) {
   }
   let guardado = null; try { guardado = sessionStorage.getItem('mno-negocio'); } catch (e) { }
   const neg = lista.find(n => n.id === guardado) || lista.find(n => n.subdominio === subdominio()) || lista[0];
+  // Si entró con una clave temporal, primero pone la suya
+  if (!SES.admin) { try { const { data: debe } = await sb.rpc('debo_cambiar_clave'); if (debe === true) { CLAVE_NEG = neg; pantalla(claveNuevaHTML()); return; } } catch (e) { } }
   await abrirNegocio(neg);
 }
 async function abrirNegocio(neg) {
@@ -1619,7 +1633,7 @@ function usSheet() {
   <p class="small muted" style="margin:0">${u.rol === 'dueno' ? 'Ve todo el negocio, la plata y la configuración.' : u.rol === 'secretaria' ? 'Registra ventas, gastos, compras y clientes. No ve las ganancias.' : 'Registra sus ventas y ve lo que lleva ganado. Nada más.'}</p>
   ${u.rol === 'empleado' ? `<div class="field"><label for="usE">¿Quién es en tu equipo?</label><select class="inp" id="usE"><option value="">Elige…</option>${S.empleados.map(e => `<option value="${e.id}" ${u.empleado_id === e.id ? 'selected' : ''}>${esc(e.nombre)} · ${esc(e.rol)}</option>`).join('')}</select>${S.empleados.length ? '' : '<span class="xs" style="color:var(--bad)">Primero agrégalo en «Equipo».</span>'}</div>` : ''}`
   : `<p class="small muted" style="margin:0">Usuario: <b>${esc(u.usuario)}</b> · ${ROL_TXT[u.rol]}</p>`}
-  <div class="field"><label for="usC">${nuevo ? 'Clave' : 'Clave nueva'}</label><input class="inp" id="usC" type="text" autocomplete="new-password" placeholder="Mínimo 6 letras o números"><span class="xs muted">${nuevo ? 'Anótala y entrégasela. La puede cambiar después.' : 'Déjala vacía si no la quieres cambiar.'}</span></div>
+  <div class="field"><label for="usC">${nuevo ? 'Clave' : 'Clave nueva'}</label><input class="inp" id="usC" type="text" autocomplete="new-password" placeholder="Mínimo 6 letras o números"><span class="xs muted">${nuevo ? 'Es una clave temporal: la primera vez que entre, la plataforma le pide poner su propia clave.' : 'Déjala vacía si no la quieres cambiar. Si la cambias, es temporal: al entrar pone la suya.'}</span></div>
   <div class="field"><label for="usT">Celular para WhatsApp (opcional)</label><input class="inp" id="usT" inputmode="tel" value="${esc(u.telefono ? phoneFmt(String(u.telefono).slice(-10)) : '')}" placeholder="300 000 0000"><span class="xs muted">Desde este número podrá registrar ventas por WhatsApp.</span></div>
   <button type="button" class="btn btn-p block" data-act="usSave" id="usBtn">${ic('check', 20, 2.6)}${nuevo ? 'Crear usuario' : 'Guardar'}</button>
   ${!nuevo && u.user_id !== SES.user.id ? `<button type="button" class="btn ${u.activo ? 'btn-d' : 'btn-l'} block" data-act="usActivo">${u.activo ? 'Quitarle el acceso' : 'Devolverle el acceso'}</button>` : ''}`;
@@ -1730,7 +1744,7 @@ const SB_ACT = {
       await recargarMiembros(); closeSheet(); render();
       openSheet(() => `<div class="sheet-h"><h3>Usuario creado</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
         <p class="small muted" style="margin:0">Mándale estos datos a ${esc(nombre)} para que entre:</p>
-        <div class="msgbox" id="usTxt">Entra a https://${esc((SES.negocio.subdominio || 'flores') + '.lidereslocales.com')}\nUsuario: ${esc(usuario)}\nClave: ${esc(clave)}</div>
+        <div class="msgbox" id="usTxt">Entra a https://${esc((SES.negocio.subdominio || 'flores') + '.lidereslocales.com')}\nUsuario: ${esc(usuario)}\nClave temporal: ${esc(clave)}\nLa primera vez que entres te va a pedir que pongas tu propia clave.</div>
         <button type="button" class="btn btn-p block" data-act="usCopiar">${ic('copy', 18)}Copiar</button>`);
       return;
     }
@@ -1750,7 +1764,7 @@ const SB_ACT = {
   histOk: async (el, id) => {
     if (syncPend) await sincronizar();
     const { data, error } = await sb.rpc('deshacer', { p_id: Number(id) });
-    UI.undoAsk = null; HISTDB = null;
+    UI.undoAsk = null; HISTDB = null; AUD = null;
     if (error) { toast('No se pudo deshacer: ' + errTxt(error)); return render(); }
     await recargar(); toast(data || 'Listo');
   },
@@ -1953,8 +1967,8 @@ async function pfGuardar(k, cambios) {
   return true;
 }
 const PRESETS = {
-  basico: { apagar: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'buscador'], prender: ['clientes', 'whatsapp'], obligatorios: [] },
-  todo: { apagar: [], prender: ['domicilios', 'abonos', 'compras', 'gastos', 'equipo', 'guia', 'buscador', 'clientes', 'whatsapp'], obligatorios: ['cliente_nombre'] }
+  basico: { apagar: ['domicilios', 'abonos', 'compras', 'inventario', 'gastos', 'equipo', 'guia', 'buscador'], prender: ['clientes', 'whatsapp'], obligatorios: [] },
+  todo: { apagar: [], prender: ['domicilios', 'abonos', 'compras', 'inventario', 'gastos', 'equipo', 'guia', 'buscador', 'clientes', 'whatsapp'], obligatorios: ['cliente_nombre'] }
 };
 const PCFG_ACT = {
   pfPreset: async (el, id, v) => {
@@ -2394,7 +2408,7 @@ function compraCalcHTML(i, unit, diff) {
       : `<button type="button" class="btn btn-p block" data-act="cSave" data-v="1">${ic('check', 20, 2.6)}Guardar compra</button>`}`;
 }
 function compraResHTML(res) {
-  const domTxt = res.dom ? ` El domicilio de ${money(res.dom)} quedó como gasto del día.` : '';
+  const domTxt = (res.dom ? ` El domicilio de ${money(res.dom)} quedó como gasto del día.` : '') + (on('inventario') ? ' Las flores entraron a tu inventario.' : '');
   if (!res.rows.length) return `<div class="card" style="border:2px solid var(--green)"><b>Compra guardada.</b> <span class="muted">Ya se tiene en cuenta en el costo de tus arreglos.${domTxt}</span></div>`;
   return `<div class="card" style="border:2px solid var(--green);display:flex;flex-direction:column;gap:8px">${domTxt ? `<span class="small" style="color:var(--green-d);font-weight:700">${domTxt.trim()}</span>` : ''}
     <div class="row"><b>Así quedan tus productos con ${esc(res.nombre.toLowerCase())} a ${money(res.precio)}</b><button type="button" class="x" style="width:40px;height:40px" data-act="cResClose" aria-label="Cerrar">${ic('x', 18)}</button></div>
@@ -2767,8 +2781,9 @@ VIEWS['mi-negocio'] = () => {
     <div class="field"><label for="cfp">Mensaje base</label><textarea class="inp" id="cfp" data-in="cfg" data-k="plantilla">${esc(c.plantilla)}</textarea><span class="xs muted">Puedes usar {cliente}, {persona}, {ocasion}, {fecha}, {producto} y {negocio}.</span></div></div>` : ''}
   <div class="card row" data-tour="mods" style="flex-wrap:wrap"><span class="col" style="flex:1;min-width:200px;gap:2px"><b>Funcionalidades</b><span class="small muted">Prende solo lo que usa tu negocio: equipo, clientes, domicilios, abonos y más.</span></span><a class="btn btn-l sm" href="#funciones">${ic('grid', 18)}Ver funciones</a></div>
   ${usuariosHTML()}
-  ${historialHTML()}
+  <a class="card row" href="#auditoria" style="text-decoration:none;color:inherit;flex-wrap:wrap"><span class="col" style="flex:1;min-width:200px;gap:2px"><b>Auditoría</b><span class="small muted">Quién hizo cada cambio, y deshacer si alguien se equivocó.</span></span><span class="btn btn-l sm">Ver</span></a>
   ${respaldoHTML()}
+  ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Cambiar mi clave</button>` : ''}
   <button type="button" class="btn btn-l block" data-act="salir">${ic('logout', 18)}Salir de la plataforma</button>`;
 };
 
@@ -3067,12 +3082,232 @@ function showInfo(btn, key) {
 }
 
 /* =========================================================
+   Inventario por lotes: las ventas gastan primero lo más viejo
+   (el cálculo lo hace la base de datos; aquí se muestra y se cuenta)
+   ========================================================= */
+let INV = null, INVCARGA = false, INVC = { vals: {} }, INVD = { iid: '', cant: '', nota: '' };
+const fmtC = n => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('es-CO');
+const numC = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
+async function cargarInv() {
+  if (INVCARGA || !SES.negocio) return; INVCARGA = true;
+  try {
+    const desde = new Date(Date.now() - 60 * 864e5).toISOString();
+    const [lo, fa, mv] = await Promise.all([
+      todas('lotes', q => q.order('fecha', { ascending: true }).order('creado', { ascending: true })),
+      todas('consumos', q => q.eq('tipo', 'faltante').gte('fecha', desde)),
+      todas('movimientos', q => q.gte('creado', desde).order('creado', { ascending: false }))]);
+    INV = {
+      lotes: lo.map(l => ({ id: l.id, iid: l.insumo_id, fecha: fechaApp(l.fecha), creado: l.creado, ini: nn(l.cantidad_inicial), cant: nn(l.cantidad), costo: nn(l.costo), origen: l.origen })),
+      faltas: fa.map(c => ({ iid: c.insumo_id, cant: nn(c.cantidad), fecha: c.fecha })),
+      movs: mv.map(m => ({ tipo: m.tipo, iid: m.insumo_id, nombre: m.insumo_nombre, unidad: m.unidad, cant: nn(m.cantidad), costo: nn(m.costo_total), nota: m.nota || '', fecha: fechaApp(m.fecha), quien: m.creado_por }))
+    };
+  } catch (e) { INV = { error: errTxt(e) }; }
+  INVCARGA = false; if (route() === 'inventario' && !sheetFn) render();
+}
+const invSeguidos = () => new Set((INV && INV.lotes || []).map(l => l.iid));
+const invLotes = iid => INV.lotes.filter(l => l.iid === iid && l.cant > 0);
+const invHay = iid => invLotes(iid).reduce((s, l) => s + l.cant, 0);
+// Lo que se vendió de más (sin estar anotado) después del último conteo o compra de ese insumo
+const invFalta = iid => { const ult = INV.lotes.filter(l => l.iid === iid).reduce((m, l) => l.creado > m ? l.creado : m, ''); return INV.faltas.filter(f => f.iid === iid && f.fecha > ult).reduce((s, f) => s + f.cant, 0); };
+const usosInsumo = iid => S.productos.filter(p => p.receta.some(r => r.iid === iid)).length;
+const nombreDe = uid => { const m = (S.miembros || []).find(x => x.user_id === uid); return m ? first(m.nombre) : 'Líderes Locales'; };
+function movTxt(m) {
+  const u = m.unidad ? ' ' + m.unidad : '';
+  if (m.tipo === 'dano') return `Se dañaron ${fmtC(-m.cant)} de ${m.nombre}${m.costo ? ' · ' + money(m.costo) : ''}${m.nota ? ' · ' + m.nota : ''}`;
+  if (m.tipo === 'inicial') return `Conteo de ${m.nombre}: ${fmtC(m.cant)}${u}`;
+  return `Corrección de ${m.nombre}: ${m.cant > 0 ? '+' : ''}${fmtC(m.cant)}${u}`;
+}
+
+VIEWS.inventario = () => {
+  const cab = `<h2 class="v-title">Inventario</h2><p class="v-sub">Lo que tienes de cada flor e insumo, y a qué precio lo compraste.</p>
+  ${guiaSec('inventario')}`;
+  if (!on('inventario')) return cab + '<div class="card empty">El inventario está apagado. Lo puedes prender en Funcionalidades.</div>';
+  if (INV === null) { cargarInv(); return cab + '<div class="card empty">Cargando tu inventario…</div>'; }
+  if (INV.error) return cab + `<div class="card empty">${SES.admin ? 'Falta correr el ajuste <b>09-inventario-claves-auditoria.sql</b> en Supabase.' : 'El inventario todavía no está listo. Avísale a Líderes Locales.'}</div>`;
+  const seg = invSeguidos();
+  if (!seg.size) return cab + `<div class="card" style="display:flex;flex-direction:column;gap:12px;border:2px solid var(--green)">
+    <b style="font-size:18px">Haz tu conteo inicial</b>
+    <span style="line-height:1.5">Cuenta lo que tienes hoy en la nevera y en el taller, y escribe cuántas hay de cada cosa y a cuánto te costaron. Desde ahí, cada venta gasta primero las flores más viejas y cada compra suma las nuevas.</span>
+    <span class="small muted" style="line-height:1.5">No tienes que contar todo: empieza por las flores que más usas, el papel y las cajas. Lo que no cuentes se sigue calculando con su precio de compra.</span>
+    <button type="button" class="btn btn-p block" data-act="invContar" style="min-height:56px">${ic('list', 20)}Empezar el conteo</button></div>`;
+  const ins = S.insumos.filter(i => seg.has(i.id)).map(i => ({ i, hay: invHay(i.id), lotes: invLotes(i.id), falta: invFalta(i.id) }))
+    .sort((a, b) => (b.falta > 0) - (a.falta > 0) || a.i.nombre.localeCompare(b.i.nombre));
+  const valor = INV.lotes.reduce((s, l) => s + l.cant * l.costo, 0);
+  const T = TODAY(), ma = iso(new Date(T.getFullYear(), T.getMonth(), 1));
+  const perdidas = INV.movs.filter(m => m.fecha >= ma && m.cant < 0).reduce((s, m) => s + m.costo, 0);
+  const faltan = ins.filter(x => x.falta > 0);
+  const sinContar = S.insumos.filter(i => !seg.has(i.id)).sort((a, b) => usosInsumo(b.id) - usosInsumo(a.id));
+  return cab + `
+  <div class="kpis"><div class="kpi"><span class="lab">Tienes en flores e insumos</span><b class="num">${money(valor)}</b><span class="xs muted">Lo que te costó lo que hay hoy</span></div>
+    <div class="kpi"><span class="lab">Pérdidas de este mes</span><b class="num" style="color:${perdidas ? 'var(--bad)' : 'inherit'}">${money(perdidas)}</b><span class="xs muted">Flores dañadas y correcciones</span></div></div>
+  <div class="acciones2">
+    <button type="button" class="accion dia" data-act="invDano" style="min-height:120px"><span class="ai">${ic('trash', 24, 2.4)}</span><span><b>Se dañaron flores</b><span class="as">Las que se marchitaron o se botaron</span></span></button>
+    <button type="button" class="accion fijo" data-act="invContar" style="min-height:120px"><span class="ai">${ic('list', 24, 2.4)}</span><span><b>Contar de nuevo</b><span class="as">Corrige si no cuadra con lo que hay</span></span></button>
+  </div>
+  ${on('compras') ? `<a class="btn btn-l block" href="#compras">${ic('cart', 18)}Anotar una compra (entra sola al inventario)</a>` : ''}
+  ${faltan.length ? `<div class="alert" style="border:2px solid #E8B4AE"><div class="ic bad">${ic('alert')}</div><div class="tx"><b>Vendiste más de lo que tenías anotado</b><span class="muted">${faltan.map(x => `${esc(x.i.nombre)} (faltan ${fmtC(x.falta)})`).join(', ')}. Anota la compra que hiciste o cuenta de nuevo.</span></div></div>` : ''}
+  <div class="sect">Lo que tienes</div>
+  <div class="card" style="padding:4px 16px">${ins.map(x => `<div class="list-item" style="flex-wrap:wrap;gap:8px"><span class="col" style="flex:1;min-width:190px;gap:2px"><b style="font-size:15.5px">${esc(x.i.nombre)}</b>
+      <span class="small muted" style="line-height:1.4">${x.lotes.length ? x.lotes.map((l, k) => `${fmtC(l.cant)} a ${money(l.costo)}${k === 0 && x.lotes.length > 1 ? ' (se usan primero)' : ''}`).join(' · ') : 'Se acabó'}</span></span>
+      <span class="col" style="align-items:flex-end;gap:2px"><b class="num" style="font-size:20px;color:${x.hay ? 'inherit' : 'var(--bad)'}">${fmtC(x.hay)}</b><span class="xs muted">${esc(x.i.unidad)}</span></span>
+      ${x.falta > 0 ? `<span class="badge bad" style="width:100%;justify-content:center">Faltan ${fmtC(x.falta)}: anota la compra o cuenta de nuevo</span>` : ''}</div>`).join('')}</div>
+  ${INV.movs.length ? `<div class="sect">Lo último que pasó</div><div class="card" style="padding:4px 16px">${INV.movs.slice(0, 8).map(m => `<div class="list-item"><span class="col" style="flex:1;gap:2px"><b style="font-size:14.5px">${esc(movTxt(m))}</b><span class="xs muted">${fLarga(parseD(m.fecha))} · ${esc(nombreDe(m.quien))}</span></span></div>`).join('')}</div>` : ''}
+  <details class="card"><summary class="strong" style="cursor:pointer">Insumos que no cuentas (${sinContar.length})</summary>
+    <p class="small muted" style="line-height:1.5">Estos se calculan con su precio de compra, sin inventario. Si quieres controlar alguno, inclúyelo en «Contar de nuevo».</p>
+    <p class="small" style="line-height:1.6">${sinContar.map(i => esc(i.nombre)).join(' · ')}</p></details>`;
+};
+
+function invConteoSheet() {
+  const seg = invSeguidos(), inicial = !seg.size;
+  const L = [...S.insumos].sort((a, b) => (seg.has(b.id) - seg.has(a.id)) || (usosInsumo(b.id) - usosInsumo(a.id)) || a.nombre.localeCompare(b.nombre));
+  return `<div class="sheet-h"><h3>${inicial ? 'Conteo inicial' : 'Contar de nuevo'}</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <p class="small muted" style="margin:0;line-height:1.5">${inicial ? 'Escribe cuántas tienes hoy de cada cosa. Lo que dejes vacío no se cuenta. En «Te costó» va lo que pagaste por cada una; si lo dejas vacío usamos el precio que aparece.' : 'Escribe solo lo que no cuadre: cuántas hay de verdad hoy. Lo que dejes vacío queda como está.'}</p>
+  <input class="inp" id="invQ" data-in="invq" placeholder="Buscar: rosa, papel, caja…" autocomplete="off">
+  <div class="card" style="padding:4px 12px">${L.map(i => { const v = INVC.vals[i.id] || {}; const s = seg.has(i.id);
+    return `<div class="inv-row" data-nom="${esc(sinTilde(i.nombre))}" style="display:flex;flex-direction:column;gap:6px;padding:12px 4px;border-bottom:1px solid var(--line)"><span><b style="font-size:15.5px">${esc(i.nombre)}</b> <span class="xs muted">(${esc(i.unidad)})${s ? ` · hoy hay ${fmtC(invHay(i.id))}` : ''}</span></span>
+      <div class="row start" style="gap:10px;flex-wrap:wrap"><label class="col xs strong" style="gap:4px">¿Cuántas hay?<input class="inp num" style="width:120px" inputmode="decimal" data-in="invc" data-id="${i.id}" data-k="cant" value="${esc(v.cant || '')}" placeholder="${s ? fmtC(invHay(i.id)) : 'Ej: 10'}"></label>
+      ${s ? '' : `<label class="col xs strong" style="gap:4px">Te costó cada una<input class="inp num" style="width:130px" inputmode="numeric" data-in="invc" data-id="${i.id}" data-k="costo" value="${esc(v.costo || '')}" placeholder="${money(i.precio)}"></label>`}</div></div>`; }).join('')}</div>
+  <button type="button" class="btn btn-p block" data-act="invContarOk" id="invBtn">${ic('check', 20, 2.6)}Guardar conteo</button>`;
+}
+function invDanoSheet() {
+  const seg = invSeguidos();
+  const L = [...S.insumos].sort((a, b) => (seg.has(b.id) - seg.has(a.id)) || a.nombre.localeCompare(b.nombre));
+  if (!INVD.iid) INVD.iid = (L[0] || {}).id || '';
+  const i = insumo(INVD.iid);
+  return `<div class="sheet-h"><h3>Se dañaron flores</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <p class="small muted" style="margin:0;line-height:1.5">Salen de las más viejas y quedan como pérdida del mes, así sabes cuánta plata se va en flores dañadas.</p>
+  <div class="field"><label for="idI">¿Qué se dañó?</label><select class="inp" id="idI" data-in="invd" data-k="iid">${L.map(x => `<option value="${x.id}" ${x.id === INVD.iid ? 'selected' : ''}>${esc(x.nombre)}${seg.has(x.id) ? ` (hay ${fmtC(invHay(x.id))})` : ''}</option>`).join('')}</select></div>
+  <div class="field"><label for="idC">¿Cuántas${i ? ' (' + esc(i.unidad) + ')' : ''}?</label><input class="inp num" id="idC" inputmode="decimal" data-in="invd" data-k="cant" value="${esc(INVD.cant)}" placeholder="Ej: 5" style="max-width:160px"></div>
+  <div class="field"><label for="idN">Nota (opcional)</label><input class="inp" id="idN" data-in="invd" data-k="nota" value="${esc(INVD.nota)}" placeholder="Ej: se marchitaron"></div>
+  <button type="button" class="btn btn-p block" data-act="invDanoOk" id="invBtn">${ic('check', 20, 2.6)}Guardar</button>`;
+}
+const INV_INP = {
+  invc: el => { const v = INVC.vals[el.dataset.id] = INVC.vals[el.dataset.id] || {}; v[el.dataset.k] = el.value; },
+  invq: el => { const q = sinTilde(el.value.trim()); document.querySelectorAll('.inv-row').forEach(r => { r.style.display = !q || r.dataset.nom.includes(q) ? '' : 'none'; }); },
+  invd: el => { INVD[el.dataset.k] = el.value; if (el.dataset.k === 'iid') drawSheet(); }
+};
+const INV_ACT = {
+  invContar: () => { INVC = { vals: {} }; openSheet(invConteoSheet); },
+  invDano: () => { INVD = { iid: INVD.iid, cant: '', nota: '' }; openSheet(invDanoSheet); },
+  invContarOk: async () => {
+    const seg = invSeguidos();
+    const items = Object.entries(INVC.vals).map(([iid, v]) => ({ iid, cant: numC(v.cant), costo: v.costo ? num(v.costo) : null })).filter(x => x.cant != null && x.cant >= 0);
+    if (!items.length) return toast('Escribe cuántas hay de al menos una cosa');
+    const b = document.getElementById('invBtn'); if (b) b.disabled = true;
+    if (syncPend) await sincronizar();
+    const { data, error } = await sb.rpc('inventario_contar', { p_negocio: SES.negocio.id, p_items: items.map(x => x.costo ? x : { iid: x.iid, cant: x.cant }) });
+    if (error) { if (b) b.disabled = false; return toast('No se pudo guardar el conteo: ' + errTxt(error)); }
+    // Si en el conteo inicial escribió lo que le costó, ese es ahora su precio
+    items.forEach(x => { const o = insumo(x.iid); if (o && x.costo && !seg.has(x.iid) && x.costo !== o.precio) { o.prev = o.precio; o.precio = x.costo; o.cambio = iso(TODAY()); o.estimado = false; if (SNAP.insumos) SNAP.insumos.set(o.id, JSON.stringify(MAP.insumos.d(o))); } });
+    INV = null; closeSheet(); render(); toast(data ? `Listo, quedaron contados ${data} insumo${data === 1 ? '' : 's'}` : 'Todo cuadraba, no hubo cambios');
+  },
+  invDanoOk: async () => {
+    const cant = numC(INVD.cant); if (!INVD.iid || !cant || cant <= 0) return toast('Escribe cuántas se dañaron');
+    const b = document.getElementById('invBtn'); if (b) b.disabled = true;
+    const { data, error } = await sb.rpc('inventario_dano', { p_negocio: SES.negocio.id, p_insumo: INVD.iid, p_cant: cant, p_nota: INVD.nota || null });
+    if (error) { if (b) b.disabled = false; return toast('No se pudo guardar: ' + errTxt(error)); }
+    INV = null; closeSheet(); render(); toast(`Listo. Se perdieron ${money(data || 0)} en flores`);
+  }
+};
+
+/* =========================================================
+   Clave propia: la primera vez que entra, cada persona pone su clave
+   ========================================================= */
+let CLAVE_NEG = null;
+const claveNuevaHTML = msg => `<form class="login-card" id="fClave" autocomplete="off">
+  <span class="thumb t-rose" style="width:64px;height:64px;border-radius:20px;align-self:center">${ic('lock', 32)}</span>
+  <div style="text-align:center"><h1 style="margin:0;font-size:24px;line-height:1.25">Pon tu propia clave</h1><p class="muted" style="margin:6px 0 0;font-size:16px;line-height:1.45">Es la primera vez que entras con esta clave. Escoge una que solo tú sepas, de al menos 6 letras o números.</p></div>
+  <div class="field"><label for="ncA">Tu clave nueva</label><input class="inp" id="ncA" type="password" autocomplete="new-password" style="font-size:18px"></div>
+  <div class="field"><label for="ncB">Escríbela otra vez</label><input class="inp" id="ncB" type="password" autocomplete="new-password" style="font-size:18px"></div>
+  <div id="ncMsg" class="small strong" style="color:var(--bad);min-height:20px">${esc(msg || '')}</div>
+  <button type="submit" class="btn btn-p block" id="ncBtn" style="min-height:58px;font-size:18px">Guardar y entrar</button>
+  <button type="button" class="btn btn-l block" data-act="salir">Salir</button>
+</form>`;
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'fClave') return; e.preventDefault();
+  const a = document.getElementById('ncA').value, b = document.getElementById('ncB').value, msg = document.getElementById('ncMsg'), btn = document.getElementById('ncBtn');
+  if (a.length < 6) { msg.textContent = 'La clave debe tener al menos 6 letras o números'; return; }
+  if (a !== b) { msg.textContent = 'Las dos claves no son iguales. Escríbelas otra vez.'; return; }
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  const { error } = await sb.rpc('cambiar_mi_clave', { p_clave: a });
+  if (error) { btn.disabled = false; btn.textContent = 'Guardar y entrar'; msg.textContent = errTxt(error); return; }
+  const neg = CLAVE_NEG; CLAVE_NEG = null; await abrirNegocio(neg);
+  toast('Listo, ya tienes tu propia clave');
+});
+const miClaveSheet = () => `<div class="sheet-h"><h3>Cambiar mi clave</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <p class="small muted" style="margin:0">Escoge una clave que solo tú sepas, de al menos 6 letras o números.</p>
+  <div class="field"><label for="mcA">Clave nueva</label><input class="inp" id="mcA" type="password" autocomplete="new-password"></div>
+  <div class="field"><label for="mcB">Escríbela otra vez</label><input class="inp" id="mcB" type="password" autocomplete="new-password"></div>
+  <button type="button" class="btn btn-p block" data-act="miClaveOk" id="mcBtn">${ic('lock', 18)}Guardar mi clave</button>`;
+const CLAVE_ACT = {
+  miClave: () => openSheet(miClaveSheet),
+  miClaveOk: async () => {
+    const a = document.getElementById('mcA').value, b = document.getElementById('mcB').value;
+    if (a.length < 6) return toast('La clave debe tener al menos 6 letras o números');
+    if (a !== b) return toast('Las dos claves no son iguales');
+    const btn = document.getElementById('mcBtn'); if (btn) btn.disabled = true;
+    const { error } = await sb.rpc('cambiar_mi_clave', { p_clave: a });
+    if (error) { if (btn) btn.disabled = false; return toast('No se pudo cambiar: ' + errTxt(error)); }
+    closeSheet(); toast('Listo, tu clave quedó cambiada');
+  }
+};
+
+/* =========================================================
+   Auditoría: quién hizo cada cambio
+   ========================================================= */
+let AUD = null, AUDCARGA = false, AUDFIN = false;
+const AUD_TIPOS = [['todo', 'Todo'], ['ventas', 'Ventas'], ['gastos', 'Gastos y compras'], ['productos', 'Productos y precios'], ['inventario', 'Inventario'], ['usuarios', 'Usuarios y claves'], ['clientes', 'Clientes'], ['equipo', 'Equipo'], ['ajustes', 'Ajustes']];
+const audTipo = t => ({ ventas: 'ventas', gastos: 'gastos', gastos_fijos: 'gastos', compras: 'gastos', productos: 'productos', insumos: 'productos', movimientos: 'inventario', miembros: 'usuarios', claves: 'usuarios', clientes: 'clientes', empleados: 'equipo' })[t] || 'ajustes';
+const AUD_DESHACE = ['ventas', 'productos', 'insumos', 'clientes', 'gastos', 'gastos_fijos', 'compras', 'empleados', 'funciones', 'campos', 'ajustes'];
+async function cargarAud(mas) {
+  if (AUDCARGA) return; AUDCARGA = true;
+  const desde = mas && AUD && AUD.length ? AUD[AUD.length - 1].id : null;
+  let q = sb.from('historial').select('*').eq('negocio_id', SES.negocio.id).order('id', { ascending: false }).limit(200);
+  if (desde) q = q.lt('id', desde);
+  const { data, error } = await q;
+  AUDCARGA = false;
+  if (error) { AUD = AUD || []; toast('No se pudo traer la auditoría: ' + errTxt(error)); }
+  else { AUD = (mas ? (AUD || []) : []).concat(data || []); AUDFIN = (data || []).length < 200; }
+  if (route() === 'auditoria' && !sheetFn) render();
+}
+VIEWS.auditoria = () => {
+  const cab = `<h2 class="v-title">Auditoría</h2><p class="v-sub">Quién hizo cada cambio en tu negocio, y cuándo.</p>${guiaSec('auditoria')}`;
+  if (ROL() !== 'duena') return cab + '<div class="card empty">Solo la dueña puede ver la auditoría.</div>';
+  if (AUD === null) { cargarAud(); return cab + '<div class="card empty">Cargando…</div>'; }
+  const quienes = [...new Set(AUD.map(h => h.usuario_nombre).filter(Boolean))];
+  const tipo = UI.audTipo || 'todo', per = UI.audQuien || '';
+  const L = AUD.filter(h => (tipo === 'todo' || audTipo(h.tabla) === tipo) && (!per || h.usuario_nombre === per));
+  const dias = {}; L.forEach(h => { const d = iso(new Date(h.fecha)); (dias[d] = dias[d] || []).push(h); });
+  const hoy = iso(TODAY()), ayer = iso(addD(TODAY(), -1));
+  const diaTxt = d => d === hoy ? 'Hoy' : d === ayer ? 'Ayer' : fLarga(parseD(d));
+  return cab + `
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+    <span class="small strong">¿Quién?</span>
+    <div class="chips" style="flex-wrap:wrap"><button type="button" class="chip ${!per ? 'on' : ''}" data-act="audQuien" data-v="">Todos</button>${quienes.map(q => `<button type="button" class="chip ${per === q ? 'on' : ''}" data-act="audQuien" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+    <span class="small strong">¿Qué?</span>
+    <div class="chips" style="flex-wrap:wrap">${AUD_TIPOS.map(([k, l]) => `<button type="button" class="chip ${tipo === k ? 'on' : ''}" data-act="audTipo" data-v="${k}">${l}</button>`).join('')}</div>
+  </div>
+  ${L.length ? Object.entries(dias).map(([d, hs]) => `<div class="sect">${diaTxt(d)}</div><div class="card" style="padding:4px 16px">${hs.map(h => { const f = new Date(h.fecha); const puede = !h.deshecho && h.accion !== 'DESHACER' && AUD_DESHACE.includes(h.tabla);
+    return `<div class="list-item" style="flex-wrap:wrap;gap:8px"><span class="num small muted" style="min-width:48px">${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}</span>
+      <span class="col" style="flex:1;min-width:170px;gap:2px"><b style="font-size:15px;${h.deshecho && h.accion !== 'DESHACER' ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(h.descripcion || '')}</b><span class="small" style="color:var(--green-d);font-weight:700">${esc(h.usuario_nombre || 'Sistema')}</span></span>
+      ${!puede ? '' : UI.undoAsk === String(h.id) ? `<span class="row" style="gap:6px"><button type="button" class="btn btn-d xs" data-act="histOk" data-id="${h.id}">Sí, deshacer</button><button type="button" class="btn btn-l xs" data-act="histNo">No</button></span>` : `<button type="button" class="btn btn-l xs" data-act="histAsk" data-id="${h.id}">${ic('undo', 14)}Deshacer</button>`}</div>`; }).join('')}</div>`).join('')
+    : '<div class="card empty">No hay cambios con esos filtros.</div>'}
+  ${AUDFIN ? '' : `<button type="button" class="btn btn-l block" data-act="audMas">Ver cambios más viejos</button>`}`;
+};
+const AUD_ACT = {
+  audTipo: (el, id, v) => { UI.audTipo = v; render(); },
+  audQuien: (el, id, v) => { UI.audQuien = v; render(); },
+  audMas: () => cargarAud(true)
+};
+
+/* =========================================================
    Acciones
    ========================================================= */
 const ACT = {
   info: (el, id) => showInfo(el, id),
   more: () => openSheet(() => `<div class="sheet-h"><h3>Más opciones</h3><button type="button" class="x" data-act="close" aria-label="Cerrar">${ic('x')}</button></div>
     <div class="card" style="padding:4px 16px">${navAgrupado(navFor().filter(n => !n.main && !n.oculto), n => `<button type="button" class="list-item clickable" data-act="closeGo" data-id="${n.id}"><span class="thumb t-mix">${ic(n.icon, 22)}</span><b style="flex:1">${n.label}</b></button>`)}</div>
+    ${!SES.admin ? `<button type="button" class="btn btn-l block" data-act="miClave">${ic('lock', 18)}Cambiar mi clave</button>` : ''}
     <button type="button" class="btn btn-l block" data-act="salir">${ic('logout', 18)}Salir</button>`),
   close: () => { if (RET) { PD = RET.pd; PD.receta = PD.receta.filter(r => insumo(r.iid)); RET = null; openSheet(prodSheet); return; } closeSheet(); },
   scrim: (el, id, v, e) => { if (e.target === el && !sheetLock) ACT.close(); },
@@ -3205,6 +3440,9 @@ const ACT = {
   ...SB_ACT,
   ...PANEL_ACT,
   ...PCFG_ACT,
+  ...INV_ACT,
+  ...CLAVE_ACT,
+  ...AUD_ACT,
   vSinDom: () => { D.dom = 0; render(); }
 };
 function copyText(t) {
@@ -3213,6 +3451,7 @@ function copyText(t) {
 }
 
 const INP = {
+  ...INV_INP,
   rol: el => { S.rol = el.value; save(); D = null; if (!navFor().some(n => n.id === route())) location.hash = 'inicio'; renderShell(); render(); },
   money: el => { const n = num(el.value); el.value = n ? money(n) : ''; },
   vq: el => { D.q = el.value; document.getElementById('sugs').innerHTML = sugsHTML(); },
